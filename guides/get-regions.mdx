@@ -1,0 +1,233 @@
+---
+title: "Get Available Regions"
+description: "Learn how to fetch and display available eSIM regions"
+---
+
+## Overview
+
+Retrieve the list of countries and regions where Vellosim eSIM packages are available. This is typically the first step in your purchase flow to let users select their destination.
+
+## Quick Start
+
+<CodeGroup>
+
+```javascript JavaScript
+async function getRegions() {
+  const response = await fetch('https://api.vellosim.com/api/esim/regions', {
+    method: 'GET',
+    headers: {
+      'Authorization': `Bearer ${API_KEY}`,
+      'Content-Type': 'application/json'
+    }
+  });
+  
+  const regions = await response.json();
+  return regions;
+}
+
+// Usage
+const regions = await getRegions();
+console.log(`Found ${regions.length} available regions`);
+```
+
+```python Python
+import requests
+
+def get_regions():
+    """Get all available eSIM regions"""
+    headers = {
+        'Authorization': f'Bearer {API_KEY}',
+        'Content-Type': 'application/json'
+    }
+    
+    response = requests.get(
+        'https://api.vellosim.com/api/esim/regions',
+        headers=headers
+    )
+    
+    regions = response.json()
+    return regions
+
+# Usage
+regions = get_regions()
+print(f"Found {len(regions)} available regions")
+```
+
+```php PHP
+<?php
+function getRegions() {
+    $apiKey = 'YOUR_API_KEY';
+    
+    $ch = curl_init('https://api.vellosim.com/api/esim/regions');
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_HTTPHEADER, [
+        'Authorization: Bearer ' . $apiKey,
+        'Content-Type: application/json'
+    ]);
+    
+    $response = curl_exec($ch);
+    $regions = json_decode($response, true);
+    curl_close($ch);
+    
+    return $regions;
+}
+
+// Usage
+$regions = getRegions();
+echo "Found " . count($regions) . " available regions";
+?>
+```
+
+```go Go
+package main
+
+import (
+    "encoding/json"
+    "fmt"
+    "io"
+    "net/http"
+)
+
+type Region struct {
+    Code         string   `json:"code"`
+    Name         string   `json:"name"`
+    Icon         string   `json:"icon"`
+    Logo         string   `json:"logo"`
+    Type         int      `json:"type"`
+    OperatorList []string `json:"operatorList"`
+    IsActive     bool     `json:"isActive"`
+    CreatedAt    string   `json:"createdAt"`
+    UpdatedAt    string   `json:"updatedAt"`
+}
+
+func getRegions(apiKey string) ([]Region, error) {
+    client := &http.Client{}
+    req, _ := http.NewRequest("GET", "https://api.vellosim.com/api/esim/regions", nil)
+    req.Header.Set("Authorization", "Bearer "+apiKey)
+    req.Header.Set("Content-Type", "application/json")
+    
+    resp, err := client.Do(req)
+    if err != nil {
+        return nil, err
+    }
+    defer resp.Body.Close()
+    
+    body, _ := io.ReadAll(resp.Body)
+    
+    var regions []Region
+    json.Unmarshal(body, &regions)
+    
+    return regions, nil
+}
+
+func main() {
+    regions, _ := getRegions("YOUR_API_KEY")
+    fmt.Printf("Found %d available regions\n", len(regions))
+}
+```
+
+</CodeGroup>
+
+## Response Format
+
+The API returns an array of region objects:
+
+```json
+[
+  {
+    "code": "US",
+    "name": "United States",
+    "icon": "https://flagcdn.com/w320/us.png",
+    "logo": "https://flagcdn.com/w320/us.png",
+    "type": 1,
+    "operatorList": [],
+    "isActive": true,
+    "createdAt": "2025-11-10T21:31:29.048Z",
+    "updatedAt": "2025-11-10T21:31:29.048Z"
+  },
+  {
+    "code": "GB",
+    "name": "United Kingdom",
+    "icon": "https://flagcdn.com/w320/gb.png",
+    "logo": "https://flagcdn.com/w320/gb.png",
+    "type": 1,
+    "operatorList": [],
+    "isActive": true,
+    "createdAt": "2025-11-10T21:31:29.048Z",
+    "updatedAt": "2025-11-10T21:31:29.048Z"
+  }
+]
+```
+
+## Response Fields
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `code` | string | ISO 3166-1 alpha-2 country/region code (e.g., "US", "GB") |
+| `name` | string | Display name for the region |
+| `icon` | string | URL to flag/icon image (320px width) |
+| `logo` | string | URL to logo image |
+| `type` | number | Region type: `1` for countries, `2` for continents/multi-country |
+| `operatorList` | array | List of network operators (if applicable) |
+| `isActive` | boolean | Whether the region is currently active |
+| `createdAt` | string | ISO 8601 timestamp of creation |
+| `updatedAt` | string | ISO 8601 timestamp of last update |
+
+## Filtering by Type
+
+### Get Only Single Countries
+
+```javascript
+async function getCountries() {
+  const response = await fetch(
+    'https://api.vellosim.com/api/esim/regions?type=1',
+    {
+      headers: {
+        'Authorization': `Bearer ${API_KEY}`,
+        'Content-Type': 'application/json'
+      }
+    }
+  );
+  
+  const regions = await response.json();
+  return regions;
+}
+```
+
+### Get Only Multi-Country Plans
+
+```javascript
+async function getMultiCountryRegions() {
+  const response = await fetch(
+    'https://api.vellosim.com/api/esim/regions?type=2',
+    {
+      headers: {
+        'Authorization': `Bearer ${API_KEY}`,
+        'Content-Type': 'application/json'
+      }
+    }
+  );
+  
+  const regions = await response.json();
+  return regions;
+}
+```
+
+<Note>
+  **Type Values:** 
+  - `type=1` returns single countries
+  - `type=2` returns continents/multi-country packages
+</Note>
+
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Get Packages" icon="box" href="/guides/get-packages">
+    Fetch available packages for selected region
+  </Card>
+  <Card title="Purchase eSIM" icon="shopping-cart" href="/guides/purchase-esim">
+    Complete the purchase flow
+  </Card>
+ 
+</CardGroup>

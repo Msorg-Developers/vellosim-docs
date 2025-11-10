@@ -1,0 +1,360 @@
+---
+title: "Webhooks"
+description: "Receive real-time notifications about eSIM order status changes"
+---
+
+## Overview
+
+Webhooks allow you to receive real-time HTTP notifications when events occur in your Vellosim account, such as order status changes, eSIM activation, or refunds.
+
+## Setting Up Webhooks
+
+1. Log in to your Vellosim dashboard
+2. Navigate to **Settings** > **Webhooks**
+3. Click **Add Webhook Endpoint**
+4. Enter your webhook URL
+5. Select the events you want to receive
+6. Save your webhook configuration
+
+<Tip>
+  Your webhook endpoint must be publicly accessible and accept POST requests with JSON payloads.
+</Tip>
+
+## Webhook Events
+
+| Event | Description | Trigger |
+|-------|-------------|---------|
+| `order.created` | New eSIM order placed | When a purchase is completed |
+| `order.activated` | eSIM has been activated | When customer activates their eSIM |
+| `order.completed` | Order successfully completed | When eSIM delivery is confirmed |
+| `order.failed` | Order processing failed | When an order cannot be fulfilled |
+| `order.refunded` | Order has been refunded | When a refund is processed |
+| `order.expired` | eSIM package expired | When the validity period ends |
+
+## Webhook Payload
+
+All webhooks send a POST request with this structure:
+
+```json
+{
+  "event": "order.created",
+  "timestamp": "2024-11-10T10:30:00Z",
+  "data": {
+    "orderId": "ord_1234567890",
+    "esimId": "esim_abc123",
+    "packageCode": "US_1GB_7D",
+    "status": "pending",
+    "customerEmail": "customer@example.com",
+    "amount": 9.99,
+    "currency": "USD",
+    "createdAt": "2024-11-10T10:30:00Z"
+  },
+  "signature": "sha256_signature_here"
+}
+```
+
+## Webhook Signatures
+
+Vellosim signs all webhook payloads for security. Verify the signature to ensure the webhook is from Vellosim.
+
+### Signature Verification
+
+<CodeGroup>
+
+```javascript Node.js
+const crypto = require('crypto');
+
+function verifyWebhookSignature(payload, signature, secret) {
+  const expectedSignature = crypto
+    .createHmac('sha256', secret)
+    .update(JSON.stringify(payload))
+    .digest('hex');
+  
+  return crypto.timingSafeEqual(
+    Buffer.from(signature),
+    Buffer.from(expectedSignature)
+  );
+}
+
+// Express.js example
+app.post('/webhooks/vellosim', express.raw({ type: 'application/json' }), (req, res) => {
+  const signature = req.headers['x-vellosim-signature'];
+  const webhookSecret = process.env.VELLOSIM_WEBHOOK_SECRET;
+  
+  if (!verifyWebhookSignature(req.body, signature, webhookSecret)) {
+    return res.status(401).send('Invalid signature');
+  }
+  
+  const event = JSON.parse(req.body);
+  
+  // Process the webhook event
+  handleWebhookEvent(event);
+  
+  res.status(200).send('Webhook received');
+});
+```
+
+```python Python
+import hmac
+import hashlib
+import json
+from flask import Flask, request, abort
+
+app = Flask(__name__)
+
+def verify_webhook_signature(payload, signature, secret):
+    expected_signature = hmac.new(
+        secret.encode(),
+        payload.encode(),
+        hashlib.sha256
+    ).hexdigest()
+    
+    return hmac.compare_digest(signature, expected_signature)
+
+@app.route('/webhooks/vellosim', methods=['POST'])
+def handle_webhook():
+    signature = request.headers.get('X-Vellosim-Signature')
+    webhook_secret = os.getenv('VELLOSIM_WEBHOOK_SECRET')
+    
+    payload = request.get_data(as_text=True)
+    
+    if not verify_webhook_signature(payload, signature, webhook_secret):
+        abort(401, 'Invalid signature')
+    
+    event = json.loads(payload)
+    
+    # Process the webhook event
+    handle_webhook_event(event)
+    
+    return '', 200
+```
+
+```php PHP
+<?php
+function verifyWebhookSignature($payload, $signature, $secret) {
+    $expectedSignature = hash_hmac('sha256', $payload, $secret);
+    return hash_equals($signature, $expectedSignature);
+}
+
+// Process webhook
+$payload = file_get_contents('php://input');
+$signature = $_SERVER['HTTP_X_VELLOSIM_SIGNATURE'];
+$webhookSecret = getenv('VELLOSIM_WEBHOOK_SECRET');
+
+if (!verifyWebhookSignature($payload, $signature, $webhookSecret)) {
+    http_response_code(401);
+    exit('Invalid signature');
+}
+
+$event = json_decode($payload, true);
+
+// Process the webhook event
+handleWebhookEvent($event);
+
+http_response_code(200);
+?>
+```
+
+</CodeGroup>
+
+## Handling Webhook Events
+
+Process different event types appropriately:
+
+```javascript
+function handleWebhookEvent(event) {
+  switch (event.event) {
+    case 'order.created':
+      handleOrderCreated(event.data);
+      break;
+      
+    case 'order.activated':
+      handleOrderActivated(event.data);
+      break;
+      
+    case 'order.completed':
+      handleOrderCompleted(event.data);
+      break;
+      
+    case 'order.failed':
+      handleOrderFailed(event.data);
+      break;
+      
+    case 'order.refunded':
+      handleOrderRefunded(event.data);
+      break;
+      
+    case 'order.expired':
+      handleOrderExpired(event.data);
+      break;
+      
+    default:
+      console.log(`Unhandled event type: ${event.event}`);
+  }
+}
+
+function handleOrderCreated(data) {
+  // Update database with order information
+  console.log(`New order created: ${data.orderId}`);
+  
+  // Send confirmation email to customer
+  sendOrderConfirmation(data.customerEmail, data);
+  
+  // Update order status in your system
+  updateOrderStatus(data.orderId, 'pending');
+}
+
+function handleOrderActivated(data) {
+  // Notify customer that eSIM is active
+  console.log(`eSIM activated: ${data.esimId}`);
+  sendActivationNotification(data.customerEmail, data);
+  updateOrderStatus(data.orderId, 'active');
+}
+
+function handleOrderCompleted(data) {
+  // Mark order as completed
+  console.log(`Order completed: ${data.orderId}`);
+  updateOrderStatus(data.orderId, 'completed');
+}
+```
+
+## Webhook Response
+
+Your endpoint should respond quickly to avoid timeouts:
+
+<AccordionGroup>
+  <Accordion title="Return 200 Status Code" icon="check">
+    Always return a 200 status code to acknowledge receipt. Process the webhook asynchronously if needed.
+  </Accordion>
+
+  <Accordion title="Respond Within 5 Seconds" icon="clock">
+    Your endpoint should respond within 5 seconds. For longer processing, queue the webhook for async processing.
+  </Accordion>
+
+  <Accordion title="Handle Duplicates" icon="copy">
+    Webhooks may be sent multiple times. Use the event ID to prevent duplicate processing.
+  </Accordion>
+</AccordionGroup>
+
+## Example: Async Processing
+
+```javascript
+const queue = require('bull'); // or any queue library
+const webhookQueue = new queue('webhook-processing');
+
+// Webhook endpoint - responds immediately
+app.post('/webhooks/vellosim', express.json(), async (req, res) => {
+  const signature = req.headers['x-vellosim-signature'];
+  
+  if (!verifyWebhookSignature(req.body, signature, WEBHOOK_SECRET)) {
+    return res.status(401).send('Invalid signature');
+  }
+  
+  // Add to queue for async processing
+  await webhookQueue.add({
+    event: req.body,
+    receivedAt: new Date()
+  });
+  
+  // Respond immediately
+  res.status(200).send('Webhook queued');
+});
+
+// Process webhooks asynchronously
+webhookQueue.process(async (job) => {
+  const { event } = job.data;
+  await handleWebhookEvent(event);
+});
+```
+
+## Testing Webhooks
+
+### Local Testing with ngrok
+
+Use ngrok to expose your local server for webhook testing:
+
+```bash
+# Start your local server
+npm start
+
+# In another terminal, start ngrok
+ngrok http 3000
+
+# Use the ngrok URL as your webhook endpoint
+# Example: https://abc123.ngrok.io/webhooks/vellosim
+```
+
+### Manual Testing
+
+You can manually test your webhook endpoint using cURL:
+
+```bash
+curl -X POST "https://your-domain.com/webhooks/vellosim" \
+  -H "Content-Type: application/json" \
+  -H "X-Vellosim-Signature: test_signature" \
+  -d '{
+    "event": "order.created",
+    "timestamp": "2024-11-10T10:30:00Z",
+    "data": {
+      "orderId": "test_order_123",
+      "esimId": "test_esim_456",
+      "status": "pending"
+    }
+  }'
+```
+
+## Webhook Retry Logic
+
+If your endpoint fails to respond, Vellosim will retry:
+
+- **Retry attempts**: Up to 3 retries
+- **Retry schedule**: 1 minute, 5 minutes, 30 minutes
+- **Timeout**: 5 seconds per attempt
+
+## Best Practices
+
+<AccordionGroup>
+  <Accordion title="Idempotency" icon="fingerprint">
+    Store event IDs and check for duplicates before processing webhooks.
+  </Accordion>
+
+  <Accordion title="Verify Signatures" icon="shield">
+    Always verify webhook signatures to ensure authenticity and prevent spoofing.
+  </Accordion>
+
+  <Accordion title="Use HTTPS" icon="lock">
+    Only use HTTPS endpoints for webhooks to ensure secure data transmission.
+  </Accordion>
+
+  <Accordion title="Process Asynchronously" icon="list-check">
+    Queue webhooks for async processing to respond quickly and avoid timeouts.
+  </Accordion>
+
+  <Accordion title="Log All Events" icon="file-lines">
+    Log all webhook events for debugging and audit purposes.
+  </Accordion>
+
+  <Accordion title="Monitor Failures" icon="chart-line">
+    Set up monitoring to track webhook delivery failures and investigate issues.
+  </Accordion>
+</AccordionGroup>
+
+## Webhook Dashboard
+
+Monitor webhook deliveries in your Vellosim dashboard:
+
+- View delivery history
+- See failed deliveries and error messages
+- Retry failed webhooks manually
+- Test webhook endpoints
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Website Integration" icon="browser" href="/guides/website-integration">
+    Integrate Vellosim into your website
+  </Card>
+  <Card title="Mobile App Integration" icon="mobile" href="/guides/mobile-app-integration">
+    Add eSIM to your mobile app
+  </Card>
+</CardGroup>

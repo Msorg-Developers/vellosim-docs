@@ -1,0 +1,503 @@
+---
+title: "Website Integration"
+description: "Integrate Vellosim eSIM solution into your website"
+---
+
+## Overview
+
+This guide will help you integrate Vellosim's eSIM API into your website, allowing customers to browse and purchase eSIM packages directly from your platform.
+
+## Prerequisites
+
+- Vellosim merchant account with API credentials
+- Basic knowledge of JavaScript/TypeScript
+- Web server or hosting platform
+- HTTPS enabled (required for secure API calls)
+
+## Integration Steps
+
+### Step 1: Set Up Your Environment
+
+First, set up environment variables for your API credentials:
+
+```bash .env
+VELLOSIM_API_KEY=your_api_key_here
+VELLOSIM_BASE_URL=https://api.vellosim.com
+```
+
+<Warning>
+  Never expose your API key in client-side code. Always make API calls from your backend server.
+</Warning>
+
+### Step 2: Create API Client
+
+Create a server-side API client to handle Vellosim requests:
+
+<CodeGroup>
+
+```javascript Node.js/Express
+// api/vellosim.js
+const axios = require('axios');
+
+class VellosimClient {
+  constructor(apiKey) {
+    this.client = axios.create({
+      baseURL: process.env.VELLOSIM_BASE_URL || 'https://api.vellosim.com',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json'
+      }
+    });
+  }
+
+  async getRegions() {
+    const response = await this.client.get('/api/esim/regions');
+    return response.data;
+  }
+
+  async getPackages(regionCode, regionType) {
+    const response = await this.client.get('/api/esim/packages', {
+      params: { regionCode, regionType }
+    });
+    return response.data;
+  }
+
+  async getBalance() {
+    const response = await this.client.get('/api/wallet/balance');
+    return response.data;
+  }
+
+  async purchaseEsim(packageCode, paymentMethod, packageType) {
+    const response = await this.client.post('/api/esim/buy', {
+      packageCode,
+      paymentMethod,
+      packageType
+    });
+    return response.data;
+  }
+
+  async getOrders(page = 1, limit = 20, status = null, search = null) {
+    const params = { page, limit };
+    if (status) params.status = status;
+    if (search) params.search = search;
+    
+    const response = await this.client.get('/api/esim/my-esims', { params });
+    return response.data;
+  }
+
+  async getOrder(esimId) {
+    const response = await this.client.get(`/api/esim/${esimId}`);
+    return response.data;
+  }
+}
+
+module.exports = new VellosimClient(process.env.VELLOSIM_API_KEY);
+```
+
+```typescript TypeScript/Next.js
+// lib/vellosim.ts
+import axios, { AxiosInstance } from 'axios';
+
+interface Region {
+  code: string;
+  name: string;
+  type: 'country' | 'continent';
+}
+
+interface Package {
+  packageCode: string;
+  name: string;
+  data: string;
+  validity: number;
+  price: number;
+  currency: string;
+}
+
+interface Order {
+  orderId: string;
+  esimId: string;
+  status: string;
+  packageCode: string;
+  createdAt: string;
+}
+
+class VellosimClient {
+  private client: AxiosInstance;
+
+  constructor(apiKey: string) {
+    this.client = axios.create({
+      baseURL: process.env.VELLOSIM_BASE_URL || 'https://api.vellosim.com',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json'
+      }
+    });
+  }
+
+  async getRegions(): Promise<Region[]> {
+    const response = await this.client.get('/api/esim/regions');
+    return response.data;
+  }
+
+  async getPackages(regionCode: string, regionType: string): Promise<Package[]> {
+    const response = await this.client.get('/api/esim/packages', {
+      params: { regionCode, regionType }
+    });
+    return response.data;
+  }
+
+  async getBalance(): Promise<number> {
+    const response = await this.client.get('/api/wallet/balance');
+    return response.data.balance;
+  }
+
+  async purchaseEsim(
+    packageCode: string,
+    paymentMethod: string,
+    packageType: string
+  ): Promise<Order> {
+    const response = await this.client.post('/api/esim/buy', {
+      packageCode,
+      paymentMethod,
+      packageType
+    });
+    return response.data;
+  }
+
+  async getOrders(
+    page: number = 1,
+    limit: number = 20,
+    status?: string,
+    search?: string
+  ): Promise<{ items: Order[]; pagination: any }> {
+    const params: any = { page, limit };
+    if (status) params.status = status;
+    if (search) params.search = search;
+    
+    const response = await this.client.get('/api/esim/my-esims', { params });
+    return response.data;
+  }
+
+  async getOrder(esimId: string): Promise<Order> {
+    const response = await this.client.get(`/api/esim/${esimId}`);
+    return response.data;
+  }
+}
+
+export default new VellosimClient(process.env.VELLOSIM_API_KEY!);
+```
+
+</CodeGroup>
+
+### Step 3: Create API Routes
+
+Set up backend routes to proxy requests to Vellosim:
+
+<CodeGroup>
+
+```javascript Express.js
+// routes/esim.js
+const express = require('express');
+const router = express.Router();
+const vellosim = require('../api/vellosim');
+
+// Get all regions
+router.get('/regions', async (req, res) => {
+  try {
+    const regions = await vellosim.getRegions();
+    res.json(regions);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get packages by region
+router.get('/packages', async (req, res) => {
+  try {
+    const { regionCode, regionType } = req.query;
+    const packages = await vellosim.getPackages(regionCode, regionType);
+    res.json(packages);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Purchase eSIM
+router.post('/purchase', async (req, res) => {
+  try {
+    const { packageCode, paymentMethod, packageType } = req.body;
+    const order = await vellosim.purchaseEsim(packageCode, paymentMethod, packageType);
+    res.json(order);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get user orders
+router.get('/orders', async (req, res) => {
+  try {
+    const { page, limit, status, search } = req.query;
+    const orders = await vellosim.getOrders(page, limit, status, search);
+    res.json(orders);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+module.exports = router;
+```
+
+```typescript Next.js API Routes
+// app/api/esim/regions/route.ts
+import { NextResponse } from 'next/server';
+import vellosim from '@/lib/vellosim';
+
+export async function GET() {
+  try {
+    const regions = await vellosim.getRegions();
+    return NextResponse.json(regions);
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+}
+
+// app/api/esim/packages/route.ts
+export async function GET(request: Request) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const regionCode = searchParams.get('regionCode');
+    const regionType = searchParams.get('regionType');
+    
+    if (!regionCode || !regionType) {
+      return NextResponse.json(
+        { error: 'Missing required parameters' },
+        { status: 400 }
+      );
+    }
+    
+    const packages = await vellosim.getPackages(regionCode, regionType);
+    return NextResponse.json(packages);
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+}
+
+// app/api/esim/purchase/route.ts
+export async function POST(request: Request) {
+  try {
+    const body = await request.json();
+    const { packageCode, paymentMethod, packageType } = body;
+    
+    const order = await vellosim.purchaseEsim(
+      packageCode,
+      paymentMethod,
+      packageType
+    );
+    
+    return NextResponse.json(order);
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+}
+```
+
+</CodeGroup>
+
+### Step 4: Build Frontend Components
+
+Create React components for your eSIM marketplace:
+
+```jsx React Component
+// components/EsimMarketplace.jsx
+import { useState, useEffect } from 'react';
+
+export default function EsimMarketplace() {
+  const [regions, setRegions] = useState([]);
+  const [packages, setPackages] = useState([]);
+  const [selectedRegion, setSelectedRegion] = useState(null);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    fetchRegions();
+  }, []);
+
+  const fetchRegions = async () => {
+    try {
+      const response = await fetch('/api/esim/regions');
+      const data = await response.json();
+      setRegions(data);
+    } catch (error) {
+      console.error('Failed to fetch regions:', error);
+    }
+  };
+
+  const fetchPackages = async (regionCode, regionType) => {
+    setLoading(true);
+    try {
+      const response = await fetch(
+        `/api/esim/packages?regionCode=${regionCode}&regionType=${regionType}`
+      );
+      const data = await response.json();
+      setPackages(data);
+    } catch (error) {
+      console.error('Failed to fetch packages:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleRegionSelect = (region) => {
+    setSelectedRegion(region);
+    fetchPackages(region.code, region.type);
+  };
+
+  const handlePurchase = async (packageCode) => {
+    try {
+      const response = await fetch('/api/esim/purchase', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          packageCode,
+          paymentMethod: 'wallet',
+          packageType: 'data'
+        })
+      });
+
+      const order = await response.json();
+      alert(`eSIM purchased successfully! Order ID: ${order.orderId}`);
+    } catch (error) {
+      console.error('Purchase failed:', error);
+      alert('Failed to purchase eSIM. Please try again.');
+    }
+  };
+
+  return (
+    <div className="esim-marketplace">
+      <h1>Choose Your eSIM</h1>
+      
+      <div className="regions-grid">
+        {regions.map((region) => (
+          <button
+            key={region.code}
+            onClick={() => handleRegionSelect(region)}
+            className={selectedRegion?.code === region.code ? 'active' : ''}
+          >
+            {region.name}
+          </button>
+        ))}
+      </div>
+
+      {loading && <p>Loading packages...</p>}
+
+      {packages.length > 0 && (
+        <div className="packages-grid">
+          {packages.map((pkg) => (
+            <div key={pkg.packageCode} className="package-card">
+              <h3>{pkg.name}</h3>
+              <p>Data: {pkg.data}</p>
+              <p>Validity: {pkg.validity} days</p>
+              <p className="price">${pkg.price}</p>
+              <button onClick={() => handlePurchase(pkg.packageCode)}>
+                Buy Now
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+```
+
+### Step 5: Add Styling
+
+```css styles.css
+.esim-marketplace {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 2rem;
+}
+
+.regions-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 1rem;
+  margin: 2rem 0;
+}
+
+.regions-grid button {
+  padding: 1rem;
+  border: 2px solid #e5e7eb;
+  border-radius: 8px;
+  background: white;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.regions-grid button:hover {
+  border-color: #3b82f6;
+  transform: translateY(-2px);
+}
+
+.regions-grid button.active {
+  border-color: #3b82f6;
+  background: #eff6ff;
+}
+
+.packages-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 1.5rem;
+  margin-top: 2rem;
+}
+
+.package-card {
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 1.5rem;
+  background: white;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.package-card h3 {
+  margin-top: 0;
+  color: #111827;
+}
+
+.package-card .price {
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: #3b82f6;
+  margin: 1rem 0;
+}
+
+.package-card button {
+  width: 100%;
+  padding: 0.75rem;
+  background: #3b82f6;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 500;
+}
+
+.package-card button:hover {
+  background: #2563eb;
+}
+```
+
+## Complete Example
+
+View a complete working example in our [GitHub repository](https://github.com/vellosim/examples/tree/main/website-integration).
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Mobile App Integration" icon="mobile" href="/guides/mobile-app-integration">
+    Learn how to integrate into mobile apps
+  </Card>
+  <Card title="API Reference" icon="code" href="/api-reference/introduction">
+    Explore all available endpoints
+  </Card>
+</CardGroup>

@@ -1,0 +1,286 @@
+---
+title: "Fetch eSIM Details"
+description: "Retrieve eSIM information, QR codes, and activation details"
+---
+
+## Overview
+
+Retrieve complete details of an eSIM including activation codes, QR codes, data usage, and expiry information. This is useful for displaying eSIM status to users or resending installation instructions.
+
+## Quick Start
+
+<CodeGroup>
+
+```javascript JavaScript
+async function getEsim(transactionId) {
+  const response = await fetch(
+    `https://api.vellosim.com/api/esim/${transactionId}`,
+    {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${API_KEY}`,
+        'Content-Type': 'application/json'
+      }
+    }
+  );
+  
+  const data = await response.json();
+  
+  return {
+    iccid: data.iccid,
+    qrCodeUrl: data.qrCodeUrl,
+    activationCode: data.ac,
+    shortUrl: data.shortUrl,
+    dataRemaining: data.data_usage_remain,
+    totalVolume: data.totalVolume,
+    validityRemaining: data.validity_usage_remain,
+    expiryDate: data.expiredTime,
+    packageDetails: data.packageDetails,
+    pin: data.pin,
+    puk: data.puk,
+    apn: data.apn
+  };
+}
+
+// Usage
+const esim = await getEsim('esim_1762811805580_83');
+console.log(`ICCID: ${esim.iccid}`);
+console.log(`Data Remaining: ${esim.dataRemaining} bytes`);
+console.log(`QR Code: ${esim.qrCodeUrl}`);
+```
+
+```python Python
+import requests
+
+def get_esim(transaction_id):
+    """Get eSIM details by transaction ID"""
+    headers = {
+        'Authorization': f'Bearer {API_KEY}',
+        'Content-Type': 'application/json'
+    }
+    
+    response = requests.get(
+        f'https://api.vellosim.com/api/esim/{transaction_id}',
+        headers=headers
+    )
+    
+    data = response.json()
+    
+    return {
+        'iccid': data['iccid'],
+        'qrCodeUrl': data['qrCodeUrl'],
+        'activationCode': data['ac'],
+        'shortUrl': data['shortUrl'],
+        'dataRemaining': data['data_usage_remain'],
+        'totalVolume': data['totalVolume'],
+        'validityRemaining': data['validity_usage_remain'],
+        'expiryDate': data['expiredTime'],
+        'packageDetails': data['packageDetails'],
+        'pin': data['pin'],
+        'puk': data['puk'],
+        'apn': data['apn']
+    }
+
+# Usage
+esim = get_esim('esim_1762811805580_83')
+print(f"ICCID: {esim['iccid']}")
+print(f"Data Remaining: {esim['dataRemaining']} bytes")
+print(f"QR Code: {esim['qrCodeUrl']}")
+```
+
+```php PHP
+<?php
+function getEsim($transactionId) {
+    $apiKey = 'YOUR_API_KEY';
+    
+    $ch = curl_init("https://api.vellosim.com/api/esim/{$transactionId}");
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_HTTPHEADER, [
+        'Authorization: Bearer ' . $apiKey,
+        'Content-Type: application/json'
+    ]);
+    
+    $response = curl_exec($ch);
+    $data = json_decode($response, true);
+    curl_close($ch);
+    
+    return [
+        'iccid' => $data['iccid'],
+        'qrCodeUrl' => $data['qrCodeUrl'],
+        'activationCode' => $data['ac'],
+        'shortUrl' => $data['shortUrl'],
+        'dataRemaining' => $data['data_usage_remain'],
+        'totalVolume' => $data['totalVolume'],
+        'validityRemaining' => $data['validity_usage_remain'],
+        'expiryDate' => $data['expiredTime'],
+        'packageDetails' => $data['packageDetails'],
+        'pin' => $data['pin'],
+        'puk' => $data['puk'],
+        'apn' => $data['apn']
+    ];
+}
+
+// Usage
+$esim = getEsim('esim_1762811805580_83');
+echo "ICCID: {$esim['iccid']}\n";
+echo "Data Remaining: {$esim['dataRemaining']} bytes\n";
+echo "QR Code: {$esim['qrCodeUrl']}";
+?>
+```
+
+```go Go
+package main
+
+import (
+    "encoding/json"
+    "fmt"
+    "io"
+    "net/http"
+)
+
+type PackageDetails struct {
+    Name  string `json:"name"`
+    Code  string `json:"code"`
+    Volume int64 `json:"volume"`
+}
+
+type Esim struct {
+    ICCID               string          `json:"iccid"`
+    QRCodeURL           string          `json:"qrCodeUrl"`
+    AC                  string          `json:"ac"`
+    ShortURL            string          `json:"shortUrl"`
+    DataUsageRemain     int64           `json:"data_usage_remain"`
+    TotalVolume         int64           `json:"totalVolume"`
+    ValidityUsageRemain int             `json:"validity_usage_remain"`
+    ExpiredTime         string          `json:"expiredTime"`
+    PackageDetails      PackageDetails  `json:"packageDetails"`
+    PIN                 string          `json:"pin"`
+    PUK                 string          `json:"puk"`
+    APN                 string          `json:"apn"`
+}
+
+func getEsim(apiKey, transactionID string) (*Esim, error) {
+    url := fmt.Sprintf("https://api.vellosim.com/api/esim/%s", transactionID)
+    
+    client := &http.Client{}
+    req, _ := http.NewRequest("GET", url, nil)
+    req.Header.Set("Authorization", "Bearer "+apiKey)
+    req.Header.Set("Content-Type", "application/json")
+    
+    resp, err := client.Do(req)
+    if err != nil {
+        return nil, err
+    }
+    defer resp.Body.Close()
+    
+    body, _ := io.ReadAll(resp.Body)
+    
+    var esim Esim
+    json.Unmarshal(body, &esim)
+    
+    return &esim, nil
+}
+
+func main() {
+    esim, _ := getEsim("YOUR_API_KEY", "esim_1762811805580_83")
+    fmt.Printf("ICCID: %s\n", esim.ICCID)
+    fmt.Printf("Data Remaining: %d bytes\n", esim.DataUsageRemain)
+    fmt.Printf("QR Code: %s\n", esim.QRCodeURL)
+}
+```
+
+</CodeGroup>
+
+## Response Format
+
+```json
+{
+  "_id": "69125f9f56d7f09edabbaf23",
+  "packageCode": "PWZ5FXSJ3",
+  "orderNo": "B25111021560007",
+  "transactionId": "esim_1762811805580_83",
+  "esimTranNo": "25111021560007",
+  "iccid": "8997250230000286674",
+  "imsi": "260066020045995",
+  "msisdn": "",
+  "ac": "LPA:1$rsp-eu.simlessly.com$ABAB05BFAFF44413AA72E3305C80887F",
+  "qrCodeUrl": "https://p.qrsim.net/674c5892006f4703871581a7bc3b8319.png",
+  "shortUrl": "https://p.qrsim.net/674c5892006f4703871581a7bc3b8319",
+  "smdpStatus": "RELEASED",
+  "eid": "",
+  "activeType": "2",
+  "expiredTime": "2026-05-09T21:56:47.000Z",
+  "totalVolume": 524288000,
+  "totalDuration": 7,
+  "durationUnit": "DAY",
+  "orderUsage": 0,
+  "data_usage_remain": 524288000,
+  "validity_usage_remain": 7,
+  "pin": "3266",
+  "puk": "58695894",
+  "apn": "internet",
+  "esimStatus": "GOT_RESOURCE",
+  "smsStatus": 2,
+  "dataType": 1,
+  "packageDetails": {
+    "name": "Qatar 500MB 7Days",
+    "code": "PWZ5FXSJ3",
+    "volume": 524288000,
+    "duration": 7,
+    "location": "QA",
+    "price": 4800,
+    "currency": "NGN",
+    "locationLogo": "https://flagcdn.com/w320/qa.png",
+    "description": "",
+    "speed": "3G/4G/5G",
+    "coverage": [
+      {
+        "locationName": "Qatar",
+        "locationLogo": "https://flagcdn.com/w320/qa.png",
+        "locationCode": "QA",
+        "operatorList": [
+          {
+            "operatorName": "Vodafone",
+            "networkType": "4G"
+          },
+          {
+            "operatorName": "ooredoo",
+            "networkType": "5G"
+          }
+        ]
+      }
+    ]
+  },
+  "isActive": true,
+  "createdAt": "2025-11-10T21:56:47.267Z",
+  "updatedAt": "2025-11-10T21:56:47.726Z",
+  "user": "69120363ed042b4afb7aca90",
+  "transactionRef": "69125f9e56d7f09edabbaf1f",
+  "__v": 0
+}
+```
+
+## Key Response Fields
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `transactionId` | string | Transaction/eSIM unique identifier |
+| `iccid` | string | Integrated Circuit Card ID (eSIM identifier) |
+| `ac` | string | Full LPA activation code (LPA:1$smdp$matching-id) |
+| `qrCodeUrl` | string | Full URL to QR code image for scanning |
+| `shortUrl` | string | Shortened URL for QR code |
+| `data_usage_remain` | number | Remaining data in bytes |
+| `totalVolume` | number | Total data allowance in bytes |
+| `validity_usage_remain` | number | Remaining validity days |
+| `totalDuration` | number | Total validity duration |
+| `expiredTime` | string | eSIM expiry date (ISO 8601) |
+| `pin` | string | eSIM PIN code |
+| `puk` | string | eSIM PUK code |
+| `apn` | string | Access Point Name for data connection |
+| `packageDetails` | object | Package information with coverage details |
+
+<Note>
+  **Data Values in Bytes:** `totalVolume` and `data_usage_remain` are in bytes. Divide by 1073741824 to convert to GB, or 1048576 for MB.
+</Note>
+ 
+

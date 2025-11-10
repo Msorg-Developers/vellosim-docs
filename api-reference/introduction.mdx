@@ -1,33 +1,205 @@
 ---
-title: 'Introduction'
-description: 'Example section for showcasing API endpoints'
+title: 'API Introduction'
+description: 'Welcome to the Vellosim API documentation'
 ---
 
-<Note>
-  If you're not looking to build API reference documentation, you can delete
-  this section by removing the api-reference folder.
-</Note>
+## Welcome to Vellosim API
 
-## Welcome
+The Vellosim API provides a comprehensive solution for integrating eSIM services into your application or website. Our API enables you to offer global connectivity solutions to your customers with ease.
 
-There are two ways to build API documentation: [OpenAPI](https://mintlify.com/docs/api-playground/openapi/setup) and [MDX components](https://mintlify.com/docs/api-playground/mdx/configuration). For the starter kit, we are using the following OpenAPI specification.
+### Base URL
 
-<Card
-  title="Plant Store Endpoints"
-  icon="leaf"
-  href="https://github.com/mintlify/starter/blob/main/api-reference/openapi.json"
->
-  View the OpenAPI specification file
-</Card>
+```
+https://api.vellosim.com
+```
+
+For development and testing:
+```
+http://localhost:8083
+```
 
 ## Authentication
 
-All API endpoints are authenticated using Bearer tokens and picked up from the specification file.
+All API requests require authentication using a Bearer token. Include your API key in the Authorization header:
+
+```bash
+Authorization: Bearer YOUR_API_KEY
+```
+
+### Getting Your API Key
+
+1. Log in to your Vellosim dashboard
+2. Navigate to **Developer** → **API Keys**
+3. Click **Generate New API Key**
+4. Copy and securely store your API key
+
+<Warning>
+  **Keep your API key secure!** Never share it publicly or commit it to version control. The API key is shown only once during creation.
+</Warning>
+
+## Request Format
+
+### Headers
+
+Include these headers in all requests:
+
+```http
+Authorization: Bearer YOUR_API_KEY
+Content-Type: application/json
+Accept: application/json
+```
+
+### HTTP Methods
+
+| Method | Usage |
+|--------|-------|
+| GET | Retrieve resources (regions, packages, orders) |
+| POST | Create resources (purchase eSIMs) |
+| PUT | Update resources |
+| DELETE | Delete resources |
+
+## Response Format
+
+All API responses are returned in JSON format with consistent structure.
+
+### Success Response
 
 ```json
-"security": [
-  {
-    "bearerAuth": []
-  }
-]
+{
+  "success": true,
+  "data": {
+    // Response data here
+  },
+  "message": "Request processed successfully"
+}
 ```
+
+### Error Response
+
+```json
+{
+  "success": false,
+  "error": {
+    "code": "ERROR_CODE",
+    "message": "Human-readable error message"
+  },
+  "statusCode": 400
+}
+```
+
+## Status Codes
+
+| Code | Status | Description |
+|------|--------|-------------|
+| 200 | OK | Request successful |
+| 201 | Created | Resource created successfully |
+| 400 | Bad Request | Invalid parameters or business logic error |
+| 401 | Unauthorized | Missing or invalid API key |
+| 403 | Forbidden | Valid key but insufficient permissions |
+| 404 | Not Found | Resource not found |
+| 429 | Too Many Requests | Rate limit exceeded |
+| 500 | Internal Server Error | Server error occurred |
+| 503 | Service Unavailable | Service temporarily unavailable |
+
+## Rate Limiting
+
+API requests are rate-limited based on your plan:
+
+| Plan | Rate Limit |
+|------|------------|
+| Standard | 100 requests/minute |
+| Premium | 500 requests/minute |
+| Enterprise | Custom limits |
+
+Rate limit information is included in response headers:
+
+```http
+X-RateLimit-Limit: 100
+X-RateLimit-Remaining: 95
+X-RateLimit-Reset: 1699564800
+```
+
+## Pagination
+
+Endpoints that return lists support pagination:
+
+```bash
+GET /api/esim/my-esims?page=1&limit=20
+```
+
+### Pagination Response
+
+```json
+{
+  "success": true,
+  "data": {
+    "items": [...],
+    "pagination": {
+      "currentPage": 1,
+      "totalPages": 5,
+      "totalItems": 100,
+      "itemsPerPage": 20,
+      "hasNextPage": true,
+      "hasPrevPage": false
+    }
+  }
+}
+```
+
+## API Endpoints
+
+### Wallet
+
+<Card title="Get Balance" icon="wallet" href="/api-reference/wallet/balance">
+  Retrieve your current wallet balance
+</Card>
+
+### eSIM
+
+<CardGroup cols={2}>
+  <Card title="Get Regions" icon="earth-americas" href="/api-reference/esim/regions">
+    Get all available regions (countries & continents)
+  </Card>
+  <Card title="Get Packages" icon="box" href="/api-reference/esim/packages">
+    Get eSIM packages filtered by region
+  </Card>
+</CardGroup>
+
+### Purchase
+
+<Card title="Buy eSIM" icon="cart-shopping" href="/api-reference/purchase/buy">
+  Purchase an eSIM package
+</Card>
+
+### Orders
+
+<CardGroup cols={2}>
+  <Card title="My eSIMs" icon="list" href="/api-reference/orders/my-esims">
+    Get all your eSIM orders with filtering
+  </Card>
+  <Card title="Get Order" icon="file-invoice" href="/api-reference/orders/get-order">
+    Get specific order details by ID
+  </Card>
+</CardGroup>
+
+## SDKs and Libraries
+
+We're working on official SDKs for popular languages. In the meantime, you can use standard HTTP clients like:
+
+- **JavaScript/TypeScript**: `fetch`, `axios`
+- **Python**: `requests`, `httpx`
+- **PHP**: `cURL`, `Guzzle`
+- **Java/Kotlin**: `OkHttp`, `Retrofit`
+- **Swift**: `URLSession`, `Alamofire`
+
+## Support
+
+Need help integrating the API?
+
+- 📚 Check our [guides](/guides/authentication) for step-by-step tutorials
+- 💬 Contact support at [support@vellosim.com](mailto:support@vellosim.com)
+- 🌐 Visit [vellosim.com](https://vellosim.com) for more information
+
+<Tip>
+  Start with the [Quickstart Guide](/quickstart) to make your first API call in minutes!
+</Tip>

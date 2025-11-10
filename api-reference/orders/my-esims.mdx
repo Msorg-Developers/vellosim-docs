@@ -1,0 +1,424 @@
+---
+title: 'Get My eSIMs'
+api: 'GET /api/esim/my-esims'
+description: 'Get all your eSIM orders with filtering and pagination'
+---
+
+## Endpoint
+
+```
+GET /api/esim/my-esims
+```
+
+## Description
+
+Retrieve a paginated list of all your eSIM orders with optional filtering by status and search.
+
+## Authentication
+
+<ParamField header="Authorization" type="string" required>
+  Bearer token for authentication
+  ```
+  Bearer YOUR_API_KEY
+  ```
+</ParamField>
+
+## Query Parameters
+
+<ParamField query="page" type="number" default="1">
+  Page number for pagination
+</ParamField>
+
+<ParamField query="limit" type="number" default="10">
+  Number of items per page (max: 100)
+</ParamField>
+
+<ParamField query="status" type="string" optional>
+  Filter by eSIM status:
+  - `ACTIVE` - Currently active eSIMs
+  - `EXPIRED` - Expired eSIMs
+  - `PENDING` - Payment pending
+  - `FAILED` - Failed orders
+  - `CANCELLED` - Cancelled orders
+</ParamField>
+
+<ParamField query="search" type="string" optional>
+  Search by package name, ICCID, or transaction ID
+</ParamField>
+
+## Response
+
+<ResponseField name="esims" type="array">
+  Array of eSIM order objects
+</ResponseField>
+
+<ResponseField name="total" type="number">
+  Total number of eSIMs matching the filter
+</ResponseField>
+
+<ResponseField name="page" type="number">
+  Current page number
+</ResponseField>
+
+<ResponseField name="limit" type="number">
+  Items per page
+</ResponseField>
+
+<ResponseField name="totalPages" type="number">
+  Total number of pages
+</ResponseField>
+
+## Example Request
+
+<CodeGroup>
+
+```bash cURL
+# Get all eSIMs
+curl -X GET 'https://api.vellosim.com/api/esim/my-esims' \
+  -H "Authorization: Bearer YOUR_API_KEY"
+
+# Get active eSIMs only
+curl -X GET 'https://api.vellosim.com/api/esim/my-esims?status=ACTIVE' \
+  -H "Authorization: Bearer YOUR_API_KEY"
+
+# Search eSIMs
+curl -X GET 'https://api.vellosim.com/api/esim/my-esims?search=USA&page=1&limit=20' \
+  -H "Authorization: Bearer YOUR_API_KEY"
+```
+
+```javascript JavaScript
+// Get all eSIMs with pagination
+async function getMyEsims(page = 1, limit = 10) {
+  const response = await fetch(
+    `https://api.vellosim.com/api/esim/my-esims?page=${page}&limit=${limit}`,
+    {
+      method: 'GET',
+      headers: {
+        'Authorization': 'Bearer YOUR_API_KEY',
+        'Content-Type': 'application/json'
+      }
+    }
+  );
+
+  return await response.json();
+}
+
+// Get active eSIMs only
+async function getActiveEsims() {
+  const response = await fetch(
+    'https://api.vellosim.com/api/esim/my-esims?status=ACTIVE',
+    {
+      method: 'GET',
+      headers: {
+        'Authorization': 'Bearer YOUR_API_KEY',
+        'Content-Type': 'application/json'
+      }
+    }
+  );
+
+  return await response.json();
+}
+
+// Search eSIMs
+async function searchEsims(query) {
+  const response = await fetch(
+    `https://api.vellosim.com/api/esim/my-esims?search=${encodeURIComponent(query)}`,
+    {
+      method: 'GET',
+      headers: {
+        'Authorization': 'Bearer YOUR_API_KEY',
+        'Content-Type': 'application/json'
+      }
+    }
+  );
+
+  return await response.json();
+}
+```
+
+```python Python
+import requests
+
+def get_my_esims(page=1, limit=10, status=None, search=None):
+    """Get user's eSIMs with optional filtering"""
+    headers = {
+        'Authorization': 'Bearer YOUR_API_KEY',
+        'Content-Type': 'application/json'
+    }
+    
+    params = {
+        'page': page,
+        'limit': limit
+    }
+    
+    if status:
+        params['status'] = status
+    
+    if search:
+        params['search'] = search
+    
+    response = requests.get(
+        'https://api.vellosim.com/api/esim/my-esims',
+        headers=headers,
+        params=params
+    )
+    
+    return response.json()
+
+# Get all eSIMs
+all_esims = get_my_esims()
+print(f"Total eSIMs: {all_esims['total']}")
+
+# Get active eSIMs
+active_esims = get_my_esims(status='ACTIVE')
+print(f"Active eSIMs: {len(active_esims['esims'])}")
+
+# Search for USA eSIMs
+usa_esims = get_my_esims(search='USA')
+```
+
+```php PHP
+<?php
+function getMyEsims($page = 1, $limit = 10, $status = null, $search = null) {
+    $apiKey = 'YOUR_API_KEY';
+    
+    $params = [
+        'page' => $page,
+        'limit' => $limit
+    ];
+    
+    if ($status) {
+        $params['status'] = $status;
+    }
+    
+    if ($search) {
+        $params['search'] = $search;
+    }
+    
+    $url = 'https://api.vellosim.com/api/esim/my-esims?' . http_build_query($params);
+    
+    $ch = curl_init($url);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_HTTPHEADER, [
+        'Authorization: Bearer ' . $apiKey,
+        'Content-Type: application/json'
+    ]);
+    
+    $response = curl_exec($ch);
+    $data = json_decode($response, true);
+    
+    curl_close($ch);
+    
+    return $data;
+}
+
+// Get all eSIMs
+$allEsims = getMyEsims();
+echo "Total eSIMs: " . $allEsims['total'] . "\n";
+
+// Get active eSIMs
+$activeEsims = getMyEsims(1, 10, 'ACTIVE');
+echo "Active eSIMs: " . count($activeEsims['esims']) . "\n";
+?>
+```
+
+</CodeGroup>
+
+## Example Response
+
+<ResponseExample>
+
+```json 200 - Success
+{
+  "esims": [
+    {
+      "_id": "esim_64f8a1b2c3d4e5f6a7b8c9d0",
+      "packageCode": "US_5GB_30D",
+      "packageName": "USA 5GB - 30 Days",
+      "transactionId": "esim_1699564800_12345",
+      "iccid": "8944500123456789012",
+      "qrCodeUrl": "https://vellosim.com/qr/abc123",
+      "activationCode": "LPA:1$smdp.address$matchingId",
+      "esimStatus": "ACTIVE",
+      "data": "5GB",
+      "totalVolume": 5368709120,
+      "orderUsage": 1073741824,
+      "data_usage_remain": 4294967296,
+      "validity": 30,
+      "activateTime": "2024-10-15T10:30:00Z",
+      "expiredTime": "2024-11-14T10:30:00Z",
+      "createdAt": "2024-10-15T10:00:00Z",
+      "price": 8000,
+      "currency": "NGN",
+      "packageDetails": {
+        "coverage": ["United States"],
+        "networkProviders": ["AT&T", "T-Mobile", "Verizon"]
+      }
+    },
+    {
+      "_id": "esim_64f8a1b2c3d4e5f6a7b8c9d1",
+      "packageCode": "EU_10GB_15D",
+      "packageName": "Europe 10GB - 15 Days",
+      "transactionId": "esim_1699564900_12346",
+      "iccid": "8944500123456789013",
+      "qrCodeUrl": "https://vellosim.com/qr/def456",
+      "activationCode": "LPA:1$smdp.address$matchingId2",
+      "esimStatus": "EXPIRED",
+      "data": "10GB",
+      "totalVolume": 10737418240,
+      "orderUsage": 8589934592,
+      "data_usage_remain": 0,
+      "validity": 15,
+      "activateTime": "2024-09-01T08:00:00Z",
+      "expiredTime": "2024-09-16T08:00:00Z",
+      "createdAt": "2024-08-31T20:00:00Z",
+      "price": 12000,
+      "currency": "NGN",
+      "packageDetails": {
+        "coverage": ["France", "Germany", "Italy", "Spain"],
+        "networkProviders": ["Orange", "Vodafone", "T-Mobile"]
+      }
+    }
+  ],
+  "total": 25,
+  "page": 1,
+  "limit": 10,
+  "totalPages": 3
+}
+```
+
+```json 401 - Unauthorized
+{
+  "success": false,
+  "message": "Unauthorized",
+  "error": {
+    "code": "INVALID_TOKEN",
+    "details": "Invalid or expired authentication token"
+  }
+}
+```
+
+</ResponseExample>
+
+## eSIM Status
+
+| Status | Description |
+|--------|-------------|
+| `CREATED` | eSIM created, not yet activated |
+| `ACTIVE` | eSIM is active and in use |
+| `EXPIRED` | eSIM validity period has ended |
+| `PENDING` | Payment pending |
+| `FAILED` | Order or activation failed |
+| `CANCELLED` | Order was cancelled |
+| `SUSPENDED` | eSIM temporarily suspended |
+
+## Use Cases
+
+<AccordionGroup>
+  <Accordion title="Display User's eSIMs">
+    Show all eSIMs in a dashboard:
+    
+    ```javascript
+    async function displayEsimsDashboard() {
+      const { esims, total } = await getMyEsims(1, 20);
+      
+      esims.forEach(esim => {
+        console.log(`${esim.packageName} - ${esim.esimStatus}`);
+        console.log(`Data remaining: ${formatBytes(esim.data_usage_remain)}`);
+        console.log(`Expires: ${new Date(esim.expiredTime).toLocaleDateString()}\n`);
+      });
+      
+      console.log(`Showing ${esims.length} of ${total} total eSIMs`);
+    }
+    ```
+  </Accordion>
+
+  <Accordion title="Filter Active eSIMs">
+    Show only currently active eSIMs:
+    
+    ```javascript
+    async function getActiveEsimsOnly() {
+      const { esims } = await getMyEsims(1, 100, 'ACTIVE');
+      return esims;
+    }
+    
+    // Display active eSIMs
+    const activeEsims = await getActiveEsimsOnly();
+    console.log(`You have ${activeEsims.length} active eSIMs`);
+    ```
+  </Accordion>
+
+  <Accordion title="Search and Filter">
+    Search for specific eSIMs:
+    
+    ```javascript
+    async function findEsim(query) {
+      const { esims } = await searchEsims(query);
+      
+      if (esims.length === 0) {
+        console.log('No eSIMs found');
+        return null;
+      }
+      
+      return esims;
+    }
+    
+    // Search for USA eSIMs
+    const usaEsims = await findEsim('USA');
+    ```
+  </Accordion>
+
+  <Accordion title="Pagination Implementation">
+    Implement pagination in your UI:
+    
+    ```javascript
+    async function loadEsimsPage(page) {
+      const { esims, totalPages, page: currentPage } = await getMyEsims(page, 10);
+      
+      renderEsims(esims);
+      renderPagination(currentPage, totalPages);
+    }
+    
+    // Load next page
+    function nextPage(currentPage) {
+      loadEsimsPage(currentPage + 1);
+    }
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Data Usage Formatting
+
+Helper function to format data usage:
+
+```javascript
+function formatBytes(bytes) {
+  if (bytes === 0) return '0 Bytes';
+  
+  const k = 1024;
+  const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  
+  return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
+}
+
+// Usage
+const remaining = formatBytes(esim.data_usage_remain); // "4.0 GB"
+```
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Get eSIM Details" icon="info" href="/api-reference/orders/get-order">
+    Get detailed information for a specific eSIM
+  </Card>
+  <Card title="Purchase eSIM" icon="shopping-cart" href="/api-reference/purchase/buy">
+    Buy a new eSIM package
+  </Card>
+  <Card title="eSIM Statistics" icon="chart-line" href="/api-reference/orders/statistics">
+    View your eSIM usage statistics
+  </Card>
+  <Card title="Integration Guide" icon="code" href="/guides/esim-management">
+    Build an eSIM management dashboard
+  </Card>
+</CardGroup>

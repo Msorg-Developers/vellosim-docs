@@ -1,0 +1,336 @@
+---
+title: "Error Handling"
+description: "Learn how to handle errors when integrating with Vellosim API"
+---
+
+## Error Response Format
+
+When an error occurs, Vellosim API returns a JSON response with error details:
+
+```json
+{
+  "success": false,
+  "error": {
+    "code": "ERROR_CODE",
+    "message": "Human-readable error description"
+  },
+  "statusCode": 400
+}
+```
+
+## Common Error Codes
+
+### Authentication Errors
+
+| Error Code | Status | Description | Solution |
+|------------|--------|-------------|----------|
+| UNAUTHORIZED | 401 | Missing or invalid API key | Check your API key and ensure it's included in the Authorization header |
+| FORBIDDEN | 403 | Valid key but insufficient permissions | Contact support to upgrade your permissions |
+| RATE_LIMIT_EXCEEDED | 429 | Too many requests | Implement rate limiting and retry with exponential backoff |
+
+### Validation Errors
+
+| Error Code | Status | Description | Solution |
+|------------|--------|-------------|----------|
+| INVALID_PARAMETERS | 400 | Missing or invalid request parameters | Review the required parameters for the endpoint |
+| INVALID_REGION_CODE | 400 | Invalid region code provided | Use valid region codes from the regions endpoint |
+| INVALID_PACKAGE_CODE | 400 | Package code doesn't exist | Verify package code from packages endpoint |
+
+### Business Logic Errors
+
+| Error Code | Status | Description | Solution |
+|------------|--------|-------------|----------|
+| INSUFFICIENT_BALANCE | 400 | Wallet balance too low | Top up your wallet balance |
+| PACKAGE_UNAVAILABLE | 400 | Package is temporarily unavailable | Try a different package or retry later |
+| ORDER_NOT_FOUND | 404 | Order ID doesn't exist | Verify the order ID |
+| DUPLICATE_ORDER | 409 | Order already exists | Check your order history |
+
+### Server Errors
+
+| Error Code | Status | Description | Solution |
+|------------|--------|-------------|----------|
+| INTERNAL_ERROR | 500 | Internal server error | Retry the request or contact support |
+| SERVICE_UNAVAILABLE | 503 | Service temporarily unavailable | Wait and retry with exponential backoff |
+
+## Error Handling Examples
+
+### Basic Error Handling
+
+<CodeGroup>
+
+```javascript JavaScript/TypeScript
+async function getPackages(regionCode: string, regionType: string) {
+  try {
+    const response = await fetch(
+      `https://api.vellosim.com/api/esim/packages?regionCode=${regionCode}&regionType=${regionType}`,
+      {
+        headers: {
+          'Authorization': `Bearer ${API_KEY}`,
+          'Content-Type': 'application/json'
+        }
+      }
+    );
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error.message);
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error('Failed to fetch packages:', error);
+    throw error;
+  }
+}
+```
+
+```python Python
+import requests
+from requests.exceptions import RequestException
+
+def get_packages(region_code, region_type):
+    try:
+        response = requests.get(
+            'https://api.vellosim.com/api/esim/packages',
+            headers={
+                'Authorization': f'Bearer {API_KEY}',
+                'Content-Type': 'application/json'
+            },
+            params={
+                'regionCode': region_code,
+                'regionType': region_type
+            }
+        )
+        
+        response.raise_for_status()
+        return response.json()
+        
+    except RequestException as e:
+        print(f'Failed to fetch packages: {e}')
+        raise
+```
+
+</CodeGroup>
+
+### Advanced Error Handling with Retry Logic
+
+<CodeGroup>
+
+```javascript JavaScript/TypeScript
+async function makeRequestWithRetry(
+  url: string,
+  options: RequestInit,
+  maxRetries: number = 3
+) {
+  let lastError: Error;
+  
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    try {
+      const response = await fetch(url, options);
+      
+      // Handle different error types
+      if (!response.ok) {
+        const error = await response.json();
+        
+        // Don't retry client errors (4xx)
+        if (response.status >= 400 && response.status < 500) {
+          throw new Error(error.error.message);
+        }
+        
+        // Retry server errors (5xx) with exponential backoff
+        if (response.status >= 500) {
+          const delay = Math.pow(2, attempt) * 1000;
+          await new Promise(resolve => setTimeout(resolve, delay));
+          continue;
+        }
+      }
+      
+      return await response.json();
+      
+    } catch (error) {
+      lastError = error as Error;
+      
+      // Don't retry on last attempt
+      if (attempt === maxRetries - 1) {
+        break;
+      }
+      
+      // Exponential backoff
+      const delay = Math.pow(2, attempt) * 1000;
+      await new Promise(resolve => setTimeout(resolve, delay));
+    }
+  }
+  
+  throw lastError!;
+}
+```
+
+```python Python
+import time
+import requests
+from requests.exceptions import RequestException
+
+def make_request_with_retry(url, headers, method='GET', data=None, max_retries=3):
+    last_error = None
+    
+    for attempt in range(max_retries):
+        try:
+            if method == 'GET':
+                response = requests.get(url, headers=headers)
+            elif method == 'POST':
+                response = requests.post(url, headers=headers, json=data)
+            
+            # Don't retry client errors (4xx)
+            if 400 <= response.status_code < 500:
+                response.raise_for_status()
+            
+            # Retry server errors (5xx) with exponential backoff
+            if response.status_code >= 500:
+                if attempt < max_retries - 1:
+                    delay = 2 ** attempt
+                    time.sleep(delay)
+                    continue
+                response.raise_for_status()
+            
+            return response.json()
+            
+        except RequestException as e:
+            last_error = e
+            
+            if attempt < max_retries - 1:
+                delay = 2 ** attempt
+                time.sleep(delay)
+            else:
+                raise
+    
+    raise last_error
+```
+
+</CodeGroup>
+
+### User-Friendly Error Messages
+
+Create a mapping for user-friendly error messages:
+
+```javascript
+const ERROR_MESSAGES = {
+  UNAUTHORIZED: 'Authentication failed. Please check your credentials.',
+  INSUFFICIENT_BALANCE: 'Your account balance is too low. Please top up your wallet.',
+  INVALID_PACKAGE_CODE: 'The selected package is not available. Please choose another.',
+  RATE_LIMIT_EXCEEDED: 'Too many requests. Please wait a moment and try again.',
+  PACKAGE_UNAVAILABLE: 'This package is temporarily unavailable. Please try another.',
+  INTERNAL_ERROR: 'Something went wrong on our end. Please try again later.',
+  SERVICE_UNAVAILABLE: 'Service is temporarily unavailable. Please try again later.'
+};
+
+function getUserFriendlyMessage(errorCode: string): string {
+  return ERROR_MESSAGES[errorCode] || 'An unexpected error occurred. Please try again.';
+}
+
+// Usage
+try {
+  await purchaseEsim(packageCode);
+} catch (error) {
+  const message = getUserFriendlyMessage(error.code);
+  showErrorToUser(message);
+}
+```
+
+## Validation Before API Calls
+
+Validate data before making API requests to reduce errors:
+
+```javascript
+function validatePurchaseRequest(data) {
+  const errors = [];
+  
+  if (!data.packageCode) {
+    errors.push('Package code is required');
+  }
+  
+  if (!data.paymentMethod) {
+    errors.push('Payment method is required');
+  } else if (!['wallet', 'card'].includes(data.paymentMethod)) {
+    errors.push('Invalid payment method');
+  }
+  
+  if (!data.packageType) {
+    errors.push('Package type is required');
+  }
+  
+  if (errors.length > 0) {
+    throw new Error(errors.join(', '));
+  }
+}
+
+// Usage
+try {
+  validatePurchaseRequest(purchaseData);
+  await purchaseEsim(purchaseData);
+} catch (error) {
+  handleValidationError(error);
+}
+```
+
+## Logging and Monitoring
+
+Implement proper logging for debugging:
+
+```javascript
+function logApiError(error, context) {
+  console.error({
+    timestamp: new Date().toISOString(),
+    error: error.message,
+    code: error.code,
+    statusCode: error.statusCode,
+    context: context,
+    stack: error.stack
+  });
+  
+  // Send to monitoring service (e.g., Sentry, DataDog)
+  if (window.Sentry) {
+    Sentry.captureException(error, {
+      extra: context
+    });
+  }
+}
+```
+
+## Best Practices
+
+<AccordionGroup>
+  <Accordion title="Implement Exponential Backoff" icon="clock">
+    For transient errors and rate limits, use exponential backoff to automatically retry failed requests with increasing delays.
+  </Accordion>
+
+  <Accordion title="Don't Retry Client Errors" icon="ban">
+    Never retry 4xx errors (except 429) as they indicate client-side issues that won't be resolved by retrying.
+  </Accordion>
+
+  <Accordion title="Log Errors Properly" icon="file-lines">
+    Log all errors with context to help debugging. Include request parameters, timestamps, and user identifiers (without sensitive data).
+  </Accordion>
+
+  <Accordion title="Show User-Friendly Messages" icon="message">
+    Don't expose technical error messages to end users. Create friendly, actionable error messages instead.
+  </Accordion>
+
+  <Accordion title="Monitor Error Rates" icon="chart-line">
+    Track error rates and patterns to identify issues early and improve your integration.
+  </Accordion>
+
+  <Accordion title="Graceful Degradation" icon="shield">
+    When APIs fail, provide fallback options or cached data when possible to maintain user experience.
+  </Accordion>
+</AccordionGroup>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Webhooks" icon="webhook" href="/guides/webhooks">
+    Set up webhooks for real-time updates
+  </Card>
+  <Card title="API Reference" icon="code" href="/api-reference/introduction">
+    Explore all API endpoints
+  </Card>
+</CardGroup>

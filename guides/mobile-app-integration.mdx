@@ -1,0 +1,610 @@
+---
+title: "Mobile App Integration"
+description: "Integrate Vellosim eSIM into your iOS and Android mobile applications"
+---
+
+## Overview
+
+This guide covers integrating Vellosim's eSIM API into native iOS and Android applications, allowing users to browse and purchase eSIM packages directly from your mobile app.
+
+## Prerequisites
+
+- Vellosim merchant account with API credentials
+- iOS (Swift) or Android (Kotlin/Java) development environment
+- Basic knowledge of REST API integration
+- Secure backend API to handle authentication
+
+<Warning>
+  Never store API keys directly in your mobile app. Always proxy requests through your backend server.
+</Warning>
+
+## Architecture
+
+```
+Mobile App → Your Backend API → Vellosim API
+```
+
+Your mobile app should communicate with your own backend API, which then makes authenticated requests to Vellosim.
+
+## iOS Integration (Swift)
+
+### Step 1: Create API Client
+
+```swift
+// VellosimAPI.swift
+import Foundation
+
+class VellosimAPI {
+    static let shared = VellosimAPI()
+    private let baseURL = "https://your-backend-api.com/api"
+    
+    private init() {}
+    
+    // MARK: - Regions
+    
+    func getRegions(completion: @escaping (Result<[Region], Error>) -> Void) {
+        guard let url = URL(string: "\(baseURL)/esim/regions") else {
+            completion(.failure(APIError.invalidURL))
+            return
+        }
+        
+        URLSession.shared.dataTask(with: url) { data, response, error in
+            if let error = error {
+                completion(.failure(error))
+                return
+            }
+            
+            guard let data = data else {
+                completion(.failure(APIError.noData))
+                return
+            }
+            
+            do {
+                let regions = try JSONDecoder().decode([Region].self, from: data)
+                completion(.success(regions))
+            } catch {
+                completion(.failure(error))
+            }
+        }.resume()
+    }
+    
+    // MARK: - Packages
+    
+    func getPackages(regionCode: String, regionType: String, completion: @escaping (Result<[EsimPackage], Error>) -> Void) {
+        var components = URLComponents(string: "\(baseURL)/esim/packages")
+        components?.queryItems = [
+            URLQueryItem(name: "regionCode", value: regionCode),
+            URLQueryItem(name: "regionType", value: regionType)
+        ]
+        
+        guard let url = components?.url else {
+            completion(.failure(APIError.invalidURL))
+            return
+        }
+        
+        URLSession.shared.dataTask(with: url) { data, response, error in
+            if let error = error {
+                completion(.failure(error))
+                return
+            }
+            
+            guard let data = data else {
+                completion(.failure(APIError.noData))
+                return
+            }
+            
+            do {
+                let packages = try JSONDecoder().decode([EsimPackage].self, from: data)
+                completion(.success(packages))
+            } catch {
+                completion(.failure(error))
+            }
+        }.resume()
+    }
+    
+    // MARK: - Purchase
+    
+    func purchaseEsim(packageCode: String, paymentMethod: String, packageType: String, completion: @escaping (Result<Order, Error>) -> Void) {
+        guard let url = URL(string: "\(baseURL)/esim/purchase") else {
+            completion(.failure(APIError.invalidURL))
+            return
+        }
+        
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        
+        let body: [String: Any] = [
+            "packageCode": packageCode,
+            "paymentMethod": paymentMethod,
+            "packageType": packageType
+        ]
+        
+        request.httpBody = try? JSONSerialization.data(withJSONObject: body)
+        
+        URLSession.shared.dataTask(with: request) { data, response, error in
+            if let error = error {
+                completion(.failure(error))
+                return
+            }
+            
+            guard let data = data else {
+                completion(.failure(APIError.noData))
+                return
+            }
+            
+            do {
+                let order = try JSONDecoder().decode(Order.self, from: data)
+                completion(.success(order))
+            } catch {
+                completion(.failure(error))
+            }
+        }.resume()
+    }
+    
+    // MARK: - Orders
+    
+    func getOrders(page: Int = 1, limit: Int = 20, completion: @escaping (Result<OrdersResponse, Error>) -> Void) {
+        var components = URLComponents(string: "\(baseURL)/esim/orders")
+        components?.queryItems = [
+            URLQueryItem(name: "page", value: "\(page)"),
+            URLQueryItem(name: "limit", value: "\(limit)")
+        ]
+        
+        guard let url = components?.url else {
+            completion(.failure(APIError.invalidURL))
+            return
+        }
+        
+        URLSession.shared.dataTask(with: url) { data, response, error in
+            if let error = error {
+                completion(.failure(error))
+                return
+            }
+            
+            guard let data = data else {
+                completion(.failure(APIError.noData))
+                return
+            }
+            
+            do {
+                let ordersResponse = try JSONDecoder().decode(OrdersResponse.self, from: data)
+                completion(.success(ordersResponse))
+            } catch {
+                completion(.failure(error))
+            }
+        }.resume()
+    }
+}
+
+// MARK: - Models
+
+struct Region: Codable {
+    let code: String
+    let name: String
+    let type: String
+}
+
+struct EsimPackage: Codable {
+    let packageCode: String
+    let name: String
+    let data: String
+    let validity: Int
+    let price: Double
+    let currency: String
+}
+
+struct Order: Codable {
+    let orderId: String
+    let esimId: String
+    let status: String
+    let packageCode: String
+    let createdAt: String
+}
+
+struct OrdersResponse: Codable {
+    let items: [Order]
+    let pagination: Pagination
+}
+
+struct Pagination: Codable {
+    let currentPage: Int
+    let totalPages: Int
+    let totalItems: Int
+}
+
+enum APIError: Error {
+    case invalidURL
+    case noData
+}
+```
+
+### Step 2: Create SwiftUI Views
+
+```swift
+// EsimMarketplaceView.swift
+import SwiftUI
+
+struct EsimMarketplaceView: View {
+    @StateObject private var viewModel = EsimViewModel()
+    
+    var body: some View {
+        NavigationView {
+            VStack {
+                if viewModel.isLoading {
+                    ProgressView("Loading...")
+                } else {
+                    ScrollView {
+                        VStack(spacing: 20) {
+                            // Regions
+                            RegionsSection(
+                                regions: viewModel.regions,
+                                selectedRegion: viewModel.selectedRegion,
+                                onSelect: { region in
+                                    viewModel.selectRegion(region)
+                                }
+                            )
+                            
+                            // Packages
+                            if !viewModel.packages.isEmpty {
+                                PackagesSection(
+                                    packages: viewModel.packages,
+                                    onPurchase: { package in
+                                        viewModel.purchasePackage(package)
+                                    }
+                                )
+                            }
+                        }
+                        .padding()
+                    }
+                }
+            }
+            .navigationTitle("eSIM Marketplace")
+            .alert("Error", isPresented: $viewModel.showError) {
+                Button("OK") { }
+            } message: {
+                Text(viewModel.errorMessage)
+            }
+            .alert("Success", isPresented: $viewModel.showSuccess) {
+                Button("OK") { }
+            } message: {
+                Text("eSIM purchased successfully!")
+            }
+        }
+        .onAppear {
+            viewModel.loadRegions()
+        }
+    }
+}
+
+// EsimViewModel.swift
+class EsimViewModel: ObservableObject {
+    @Published var regions: [Region] = []
+    @Published var packages: [EsimPackage] = []
+    @Published var selectedRegion: Region?
+    @Published var isLoading = false
+    @Published var showError = false
+    @Published var showSuccess = false
+    @Published var errorMessage = ""
+    
+    func loadRegions() {
+        isLoading = true
+        VellosimAPI.shared.getRegions { [weak self] result in
+            DispatchQueue.main.async {
+                self?.isLoading = false
+                switch result {
+                case .success(let regions):
+                    self?.regions = regions
+                case .failure(let error):
+                    self?.errorMessage = error.localizedDescription
+                    self?.showError = true
+                }
+            }
+        }
+    }
+    
+    func selectRegion(_ region: Region) {
+        selectedRegion = region
+        isLoading = true
+        VellosimAPI.shared.getPackages(regionCode: region.code, regionType: region.type) { [weak self] result in
+            DispatchQueue.main.async {
+                self?.isLoading = false
+                switch result {
+                case .success(let packages):
+                    self?.packages = packages
+                case .failure(let error):
+                    self?.errorMessage = error.localizedDescription
+                    self?.showError = true
+                }
+            }
+        }
+    }
+    
+    func purchasePackage(_ package: EsimPackage) {
+        isLoading = true
+        VellosimAPI.shared.purchaseEsim(
+            packageCode: package.packageCode,
+            paymentMethod: "wallet",
+            packageType: "data"
+        ) { [weak self] result in
+            DispatchQueue.main.async {
+                self?.isLoading = false
+                switch result {
+                case .success:
+                    self?.showSuccess = true
+                case .failure(let error):
+                    self?.errorMessage = error.localizedDescription
+                    self?.showError = true
+                }
+            }
+        }
+    }
+}
+```
+
+## Android Integration (Kotlin)
+
+### Step 1: Add Dependencies
+
+```gradle
+// build.gradle.kts
+dependencies {
+    implementation("com.squareup.retrofit2:retrofit:2.9.0")
+    implementation("com.squareup.retrofit2:converter-gson:2.9.0")
+    implementation("com.squareup.okhttp3:okhttp:4.11.0")
+    implementation("com.squareup.okhttp3:logging-interceptor:4.11.0")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
+}
+```
+
+### Step 2: Create API Interface
+
+```kotlin
+// VellosimApiService.kt
+import retrofit2.Response
+import retrofit2.http.*
+
+interface VellosimApiService {
+    
+    @GET("esim/regions")
+    suspend fun getRegions(): Response<List<Region>>
+    
+    @GET("esim/packages")
+    suspend fun getPackages(
+        @Query("regionCode") regionCode: String,
+        @Query("regionType") regionType: String
+    ): Response<List<EsimPackage>>
+    
+    @POST("esim/purchase")
+    suspend fun purchaseEsim(
+        @Body request: PurchaseRequest
+    ): Response<Order>
+    
+    @GET("esim/orders")
+    suspend fun getOrders(
+        @Query("page") page: Int = 1,
+        @Query("limit") limit: Int = 20
+    ): Response<OrdersResponse>
+    
+    @GET("esim/{esimId}")
+    suspend fun getOrder(
+        @Path("esimId") esimId: String
+    ): Response<Order>
+}
+
+// Models
+data class Region(
+    val code: String,
+    val name: String,
+    val type: String
+)
+
+data class EsimPackage(
+    val packageCode: String,
+    val name: String,
+    val data: String,
+    val validity: Int,
+    val price: Double,
+    val currency: String
+)
+
+data class PurchaseRequest(
+    val packageCode: String,
+    val paymentMethod: String,
+    val packageType: String
+)
+
+data class Order(
+    val orderId: String,
+    val esimId: String,
+    val status: String,
+    val packageCode: String,
+    val createdAt: String
+)
+
+data class OrdersResponse(
+    val items: List<Order>,
+    val pagination: Pagination
+)
+
+data class Pagination(
+    val currentPage: Int,
+    val totalPages: Int,
+    val totalItems: Int
+)
+```
+
+### Step 3: Create Retrofit Instance
+
+```kotlin
+// VellosimClient.kt
+import okhttp3.OkHttpClient
+import okhttp3.logging.HttpLoggingInterceptor
+import retrofit2.Retrofit
+import retrofit2.converter.gson.GsonConverterFactory
+
+object VellosimClient {
+    private const val BASE_URL = "https://your-backend-api.com/api/"
+    
+    private val loggingInterceptor = HttpLoggingInterceptor().apply {
+        level = HttpLoggingInterceptor.Level.BODY
+    }
+    
+    private val okHttpClient = OkHttpClient.Builder()
+        .addInterceptor(loggingInterceptor)
+        .build()
+    
+    private val retrofit = Retrofit.Builder()
+        .baseUrl(BASE_URL)
+        .client(okHttpClient)
+        .addConverterFactory(GsonConverterFactory.create())
+        .build()
+    
+    val apiService: VellosimApiService = retrofit.create(VellosimApiService::class.java)
+}
+```
+
+### Step 4: Create Repository
+
+```kotlin
+// VellosimRepository.kt
+class VellosimRepository {
+    private val api = VellosimClient.apiService
+    
+    suspend fun getRegions(): Result<List<Region>> {
+        return try {
+            val response = api.getRegions()
+            if (response.isSuccessful && response.body() != null) {
+                Result.success(response.body()!!)
+            } else {
+                Result.failure(Exception("Failed to fetch regions"))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+    
+    suspend fun getPackages(regionCode: String, regionType: String): Result<List<EsimPackage>> {
+        return try {
+            val response = api.getPackages(regionCode, regionType)
+            if (response.isSuccessful && response.body() != null) {
+                Result.success(response.body()!!)
+            } else {
+                Result.failure(Exception("Failed to fetch packages"))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+    
+    suspend fun purchaseEsim(packageCode: String): Result<Order> {
+        return try {
+            val request = PurchaseRequest(
+                packageCode = packageCode,
+                paymentMethod = "wallet",
+                packageType = "data"
+            )
+            val response = api.purchaseEsim(request)
+            if (response.isSuccessful && response.body() != null) {
+                Result.success(response.body()!!)
+            } else {
+                Result.failure(Exception("Purchase failed"))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+}
+```
+
+### Step 5: Create ViewModel
+
+```kotlin
+// EsimViewModel.kt
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.launch
+
+class EsimViewModel : ViewModel() {
+    private val repository = VellosimRepository()
+    
+    private val _regions = MutableStateFlow<List<Region>>(emptyList())
+    val regions: StateFlow<List<Region>> = _regions
+    
+    private val _packages = MutableStateFlow<List<EsimPackage>>(emptyList())
+    val packages: StateFlow<List<EsimPackage>> = _packages
+    
+    private val _isLoading = MutableStateFlow(false)
+    val isLoading: StateFlow<Boolean> = _isLoading
+    
+    private val _error = MutableStateFlow<String?>(null)
+    val error: StateFlow<String?> = _error
+    
+    fun loadRegions() {
+        viewModelScope.launch {
+            _isLoading.value = true
+            repository.getRegions()
+                .onSuccess { _regions.value = it }
+                .onFailure { _error.value = it.message }
+            _isLoading.value = false
+        }
+    }
+    
+    fun loadPackages(regionCode: String, regionType: String) {
+        viewModelScope.launch {
+            _isLoading.value = true
+            repository.getPackages(regionCode, regionType)
+                .onSuccess { _packages.value = it }
+                .onFailure { _error.value = it.message }
+            _isLoading.value = false
+        }
+    }
+    
+    fun purchaseEsim(packageCode: String) {
+        viewModelScope.launch {
+            _isLoading.value = true
+            repository.purchaseEsim(packageCode)
+                .onSuccess { /* Handle success */ }
+                .onFailure { _error.value = it.message }
+            _isLoading.value = false
+        }
+    }
+}
+```
+
+## Best Practices
+
+<AccordionGroup>
+  <Accordion title="Secure API Keys" icon="shield">
+    Never embed API keys in your mobile app. Always route requests through your backend.
+  </Accordion>
+
+  <Accordion title="Handle Network Errors" icon="wifi">
+    Implement proper error handling for network failures and show appropriate user messages.
+  </Accordion>
+
+  <Accordion title="Cache Data" icon="database">
+    Cache static data like regions to reduce API calls and improve performance.
+  </Accordion>
+
+  <Accordion title="Loading States" icon="spinner">
+    Show loading indicators during API calls to improve user experience.
+  </Accordion>
+
+  <Accordion title="Offline Support" icon="cloud-slash">
+    Store order history locally so users can view their eSIMs even when offline.
+  </Accordion>
+</AccordionGroup>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Webhooks" icon="webhook" href="/guides/webhooks">
+    Set up webhooks for real-time updates
+  </Card>
+  <Card title="API Reference" icon="code" href="/api-reference/introduction">
+    Explore all available endpoints
+  </Card>
+</CardGroup>

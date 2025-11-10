@@ -1,0 +1,440 @@
+---
+title: 'Get eSIM Details'
+api: 'GET /api/esim/:esimId'
+description: 'Get detailed information for a specific eSIM order'
+---
+
+## Endpoint
+
+```
+GET /api/esim/:esimId
+```
+
+## Description
+
+Retrieve complete details for a specific eSIM order including QR code, activation codes, data usage, and network information.
+
+## Authentication
+
+<ParamField header="Authorization" type="string" required>
+  Bearer token for authentication
+  ```
+  Bearer YOUR_API_KEY
+  ```
+</ParamField>
+
+## Path Parameters
+
+<ParamField path="esimId" type="string" required>
+  The unique identifier of the eSIM order
+</ParamField>
+
+## Response
+
+<ResponseField name="_id" type="string">
+  eSIM unique identifier
+</ResponseField>
+
+<ResponseField name="packageCode" type="string">
+  Package code of the purchased eSIM
+</ResponseField>
+
+<ResponseField name="packageName" type="string">
+  Display name of the package
+</ResponseField>
+
+<ResponseField name="transactionId" type="string">
+  Transaction ID for the purchase
+</ResponseField>
+
+<ResponseField name="iccid" type="string">
+  ICCID (Integrated Circuit Card Identifier)
+</ResponseField>
+
+<ResponseField name="imsi" type="string">
+  IMSI (International Mobile Subscriber Identity)
+</ResponseField>
+
+<ResponseField name="msisdn" type="string">
+  Phone number assigned to the eSIM (if applicable)
+</ResponseField>
+
+<ResponseField name="qrCodeUrl" type="string">
+  URL to the QR code for eSIM installation
+</ResponseField>
+
+<ResponseField name="activationCode" type="string">
+  Manual activation code (LPA string)
+</ResponseField>
+
+<ResponseField name="smdpAddress" type="string">
+  SM-DP+ server address
+</ResponseField>
+
+<ResponseField name="matchingId" type="string">
+  Matching ID for eSIM activation
+</ResponseField>
+
+<ResponseField name="esimStatus" type="string">
+  Current status of the eSIM
+</ResponseField>
+
+<ResponseField name="data" type="string">
+  Data allowance (e.g., "5GB", "Unlimited")
+</ResponseField>
+
+<ResponseField name="totalVolume" type="number">
+  Total data volume in bytes
+</ResponseField>
+
+<ResponseField name="orderUsage" type="number">
+  Data consumed in bytes
+</ResponseField>
+
+<ResponseField name="data_usage_remain" type="number">
+  Remaining data in bytes
+</ResponseField>
+
+<ResponseField name="validity" type="number">
+  Validity period in days
+</ResponseField>
+
+<ResponseField name="activateTime" type="string">
+  Activation timestamp (ISO 8601)
+</ResponseField>
+
+<ResponseField name="expiredTime" type="string">
+  Expiry timestamp (ISO 8601)
+</ResponseField>
+
+<ResponseField name="packageDetails" type="object">
+  Additional package information including coverage and network providers
+</ResponseField>
+
+## Example Request
+
+<CodeGroup>
+
+```bash cURL
+curl -X GET 'https://api.vellosim.com/api/esim/esim_64f8a1b2c3d4e5f6a7b8c9d0' \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -H "Content-Type: application/json"
+```
+
+```javascript JavaScript
+async function getEsimDetails(esimId) {
+  const response = await fetch(
+    `https://api.vellosim.com/api/esim/${esimId}`,
+    {
+      method: 'GET',
+      headers: {
+        'Authorization': 'Bearer YOUR_API_KEY',
+        'Content-Type': 'application/json'
+      }
+    }
+  );
+
+  const esim = await response.json();
+  
+  console.log('eSIM Details:');
+  console.log('ICCID:', esim.iccid);
+  console.log('Status:', esim.esimStatus);
+  console.log('Data Remaining:', formatBytes(esim.data_usage_remain));
+  console.log('Expires:', new Date(esim.expiredTime).toLocaleDateString());
+  
+  return esim;
+}
+
+// Usage
+const esim = await getEsimDetails('esim_64f8a1b2c3d4e5f6a7b8c9d0');
+```
+
+```python Python
+import requests
+from datetime import datetime
+
+def get_esim_details(esim_id):
+    """Get detailed information for a specific eSIM"""
+    headers = {
+        'Authorization': 'Bearer YOUR_API_KEY',
+        'Content-Type': 'application/json'
+    }
+    
+    response = requests.get(
+        f'https://api.vellosim.com/api/esim/{esim_id}',
+        headers=headers
+    )
+    
+    return response.json()
+
+# Usage
+esim = get_esim_details('esim_64f8a1b2c3d4e5f6a7b8c9d0')
+
+print(f"Package: {esim['packageName']}")
+print(f"ICCID: {esim['iccid']}")
+print(f"Status: {esim['esimStatus']}")
+print(f"Data Remaining: {esim['data_usage_remain'] / (1024**3):.2f} GB")
+print(f"Expires: {datetime.fromisoformat(esim['expiredTime']).strftime('%Y-%m-%d')}")
+```
+
+```php PHP
+<?php
+function getEsimDetails($esimId) {
+    $apiKey = 'YOUR_API_KEY';
+    
+    $ch = curl_init("https://api.vellosim.com/api/esim/{$esimId}");
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_HTTPHEADER, [
+        'Authorization: Bearer ' . $apiKey,
+        'Content-Type: application/json'
+    ]);
+    
+    $response = curl_exec($ch);
+    $esim = json_decode($response, true);
+    
+    curl_close($ch);
+    
+    return $esim;
+}
+
+// Usage
+$esim = getEsimDetails('esim_64f8a1b2c3d4e5f6a7b8c9d0');
+
+echo "Package: " . $esim['packageName'] . "\n";
+echo "ICCID: " . $esim['iccid'] . "\n";
+echo "Status: " . $esim['esimStatus'] . "\n";
+echo "QR Code: " . $esim['qrCodeUrl'] . "\n";
+?>
+```
+
+</CodeGroup>
+
+## Example Response
+
+<ResponseExample>
+
+```json 200 - Success
+{
+  "_id": "esim_64f8a1b2c3d4e5f6a7b8c9d0",
+  "packageCode": "US_5GB_30D",
+  "packageName": "USA 5GB - 30 Days",
+  "orderNo": "ORD-2024-001234",
+  "transactionId": "esim_1699564800_12345",
+  "esimTranNo": "ESIM-TXN-567890",
+  "iccid": "8944500123456789012",
+  "imsi": "310260123456789",
+  "msisdn": null,
+  "ac": "ABC-123-DEF-456",
+  "qrCodeUrl": "https://vellosim.com/qr/abc123",
+  "shortUrl": "https://vls.to/abc123",
+  "activationCode": "LPA:1$smdp.gsma.com$ABC-123-DEF-456",
+  "smdpAddress": "smdp.gsma.com",
+  "matchingId": "ABC-123-DEF-456",
+  "eid": "89049032123456789012345678901234",
+  "smdpStatus": "INSTALLED",
+  "activeType": "AUTOMATIC",
+  "activateTime": "2024-10-15T10:30:00Z",
+  "expiredTime": "2024-11-14T10:30:00Z",
+  "esimStatus": "ACTIVE",
+  "data": "5GB",
+  "totalVolume": 5368709120,
+  "orderUsage": 1073741824,
+  "data_usage_remain": 4294967296,
+  "validity": 30,
+  "durationUnit": "DAY",
+  "totalDuration": 30,
+  "validity_usage_remain": 25,
+  "pin": null,
+  "puk": null,
+  "apn": "internet",
+  "smsStatus": 0,
+  "dataType": 1,
+  "price": 8000,
+  "currency": "NGN",
+  "packageDetails": {
+    "coverage": ["United States"],
+    "networkProviders": ["AT&T", "T-Mobile", "Verizon"],
+    "dataType": "Data Only",
+    "speed": "4G/5G"
+  },
+  "isActive": true,
+  "createdAt": "2024-10-15T10:00:00Z",
+  "updatedAt": "2024-11-05T08:15:00Z"
+}
+```
+
+```json 403 - Forbidden
+{
+  "success": false,
+  "message": "Forbidden",
+  "error": {
+    "code": "NOT_YOUR_ESIM",
+    "details": "This eSIM does not belong to your account"
+  }
+}
+```
+
+```json 404 - Not Found
+{
+  "success": false,
+  "message": "Not Found",
+  "error": {
+    "code": "ESIM_NOT_FOUND",
+    "details": "eSIM with the specified ID does not exist"
+  }
+}
+```
+
+</ResponseExample>
+
+## Use Cases
+
+<AccordionGroup>
+  <Accordion title="Display QR Code">
+    Show the QR code for eSIM installation:
+    
+    ```javascript
+    async function displayQRCode(esimId) {
+      const esim = await getEsimDetails(esimId);
+      
+      // Display QR code image
+      document.getElementById('qr-code').src = esim.qrCodeUrl;
+      
+      // Show manual activation code
+      document.getElementById('activation-code').textContent = esim.activationCode;
+      
+      // Show installation instructions
+      console.log('Scan this QR code to install your eSIM');
+      console.log('Or manually enter:', esim.activationCode);
+    }
+    ```
+  </Accordion>
+
+  <Accordion title="Monitor Data Usage">
+    Track data consumption:
+    
+    ```javascript
+    async function checkDataUsage(esimId) {
+      const esim = await getEsimDetails(esimId);
+      
+      const totalGB = esim.totalVolume / (1024 ** 3);
+      const usedGB = esim.orderUsage / (1024 ** 3);
+      const remainingGB = esim.data_usage_remain / (1024 ** 3);
+      
+      const usagePercentage = (usedGB / totalGB) * 100;
+      
+      console.log(`Data Usage: ${usedGB.toFixed(2)}GB / ${totalGB.toFixed(2)}GB`);
+      console.log(`Remaining: ${remainingGB.toFixed(2)}GB (${(100 - usagePercentage).toFixed(1)}%)`);
+      
+      // Alert if running low
+      if (usagePercentage > 80) {
+        console.warn('⚠️ Data usage is above 80%. Consider topping up.');
+      }
+      
+      return { totalGB, usedGB, remainingGB, usagePercentage };
+    }
+    ```
+  </Accordion>
+
+  <Accordion title="Check Expiry">
+    Monitor validity period:
+    
+    ```javascript
+    async function checkExpiry(esimId) {
+      const esim = await getEsimDetails(esimId);
+      
+      const now = new Date();
+      const expiryDate = new Date(esim.expiredTime);
+      const daysRemaining = Math.ceil((expiryDate - now) / (1000 * 60 * 60 * 24));
+      
+      if (daysRemaining <= 0) {
+        console.log('❌ eSIM has expired');
+      } else if (daysRemaining <= 3) {
+        console.warn(`⚠️ eSIM expires in ${daysRemaining} days`);
+      } else {
+        console.log(`✅ eSIM expires in ${daysRemaining} days`);
+      }
+      
+      return daysRemaining;
+    }
+    ```
+  </Accordion>
+
+  <Accordion title="Share Installation Details">
+    Generate shareable installation information:
+    
+    ```javascript
+    async function shareEsimDetails(esimId) {
+      const esim = await getEsimDetails(esimId);
+      
+      const installInfo = {
+        name: esim.packageName,
+        qrCode: esim.qrCodeUrl,
+        shortUrl: esim.shortUrl,
+        manualCode: esim.activationCode,
+        smdpAddress: esim.smdpAddress,
+        matchingId: esim.matchingId,
+        apn: esim.apn,
+        validity: `${esim.validity} days`,
+        data: esim.data
+      };
+      
+      // Share via email, SMS, or download as PDF
+      return installInfo;
+    }
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Installation Instructions
+
+Generate installation instructions for end users:
+
+```javascript
+async function getInstallInstructions(esimId) {
+  const esim = await getEsimDetails(esimId);
+  
+  return {
+    ios: [
+      'Open Settings on your iPhone',
+      'Tap Cellular or Mobile Data',
+      'Tap Add eSIM',
+      'Scan the QR code or enter details manually',
+      `SM-DP+ Address: ${esim.smdpAddress}`,
+      `Activation Code: ${esim.matchingId}`
+    ],
+    android: [
+      'Open Settings on your Android device',
+      'Go to Network & Internet > Mobile Network',
+      'Tap the + icon to add a carrier',
+      'Select "Download a SIM instead?"',
+      'Scan the QR code or enter details manually',
+      `SM-DP+ Address: ${esim.smdpAddress}`,
+      `Activation Code: ${esim.matchingId}`
+    ],
+    qrCode: esim.qrCodeUrl,
+    manualSetup: {
+      smdpAddress: esim.smdpAddress,
+      matchingId: esim.matchingId,
+      activationCode: esim.activationCode
+    }
+  };
+}
+```
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Get All eSIMs" icon="list" href="/api-reference/orders/my-esims">
+    View all your eSIM orders
+  </Card>
+  <Card title="Top-Up eSIM" icon="arrow-up" href="/api-reference/purchase/buy">
+    Add more data to this eSIM
+  </Card>
+  <Card title="Usage Monitoring" icon="chart-line" href="/guides/usage-monitoring">
+    Set up data usage alerts
+  </Card>
+  <Card title="Installation Guide" icon="mobile" href="/guides/esim-installation">
+    Help users install eSIMs
+  </Card>
+</CardGroup>

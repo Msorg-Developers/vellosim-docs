@@ -1,0 +1,515 @@
+---
+title: 'Purchase eSIM'
+api: 'POST /api/esim/buy'
+description: 'Purchase an eSIM package with wallet or card payment'
+---
+
+## Endpoint
+
+```
+POST /api/esim/buy
+```
+
+## Description
+
+Purchase an eSIM package using your wallet balance or card payment. This endpoint creates an order and returns payment information if needed.
+
+## Authentication
+
+<ParamField header="Authorization" type="string" required>
+  Bearer token for authentication
+  ```
+  Bearer YOUR_API_KEY
+  ```
+</ParamField>
+
+## Request Body
+
+<ParamField body="packageCode" type="string" required>
+  Package code to purchase (e.g., "US_5GB_30D")
+  
+  Get available package codes from `/api/esim/packages`
+</ParamField>
+
+<ParamField body="paymentMethod" type="string" required>
+  Payment method to use:
+  - `WALLET` - Pay with wallet balance
+  - `CARD` - Pay with credit/debit card (Paystack)
+  - `BANK_TRANSFER` - Pay via bank transfer
+  - `MOBILE_MONEY` - Pay with mobile money
+  - `APPLE_PAY` - Pay with Apple Pay
+</ParamField>
+
+<ParamField body="packageType" type="string" required>
+  Type of purchase:
+  - `BASE` - New eSIM purchase
+  - `TOPUP` - Top-up existing eSIM
+</ParamField>
+
+<ParamField body="esimId" type="string" optional>
+  Existing eSIM ID to top up (required when packageType is `TOPUP`)
+</ParamField>
+
+## Response
+
+<ResponseField name="transactionId" type="string">
+  Unique transaction ID for this purchase
+</ResponseField>
+
+<ResponseField name="status" type="string">
+  Order status: `SUCCESS`, `PENDING`, `PROCESSING`
+</ResponseField>
+
+<ResponseField name="package" type="object">
+  Package details including price and data allowance
+</ResponseField>
+
+<ResponseField name="paymentUrl" type="string">
+  Payment URL for card/online payments (if payment method requires it)
+</ResponseField>
+
+<ResponseField name="bankAccounts" type="array">
+  Bank account details for bank transfer payments
+</ResponseField>
+
+<ResponseField name="esimDetails" type="object">
+  eSIM details (only when payment method is WALLET and eSIM is created immediately)
+  <Expandable title="eSIM Details">
+    <ResponseField name="iccid" type="string">
+      ICCID number
+    </ResponseField>
+    <ResponseField name="qrCodeUrl" type="string">
+      QR code for eSIM installation
+    </ResponseField>
+    <ResponseField name="activationCode" type="string">
+      Manual activation code
+    </ResponseField>
+    <ResponseField name="smdpAddress" type="string">
+      SM-DP+ server address
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Example Request
+
+<CodeGroup>
+
+```bash cURL
+# Purchase with wallet
+curl -X POST https://api.vellosim.com/api/esim/buy \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "packageCode": "US_5GB_30D",
+    "paymentMethod": "WALLET",
+    "packageType": "BASE"
+  }'
+
+# Purchase with card
+curl -X POST https://api.vellosim.com/api/esim/buy \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "packageCode": "EU_10GB_15D",
+    "paymentMethod": "CARD",
+    "packageType": "BASE"
+  }'
+
+# Top-up existing eSIM
+curl -X POST https://api.vellosim.com/api/esim/buy \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "packageCode": "US_5GB_30D",
+    "paymentMethod": "WALLET",
+    "packageType": "TOPUP",
+    "esimId": "esim_64f8a1b2c3d4e5f6a7b8c9d0"
+  }'
+```
+
+```javascript JavaScript
+// Purchase with wallet
+async function purchaseEsim(packageCode) {
+  const response = await fetch('https://api.vellosim.com/api/esim/buy', {
+    method: 'POST',
+    headers: {
+      'Authorization': 'Bearer YOUR_API_KEY',
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      packageCode: packageCode,
+      paymentMethod: 'WALLET',
+      packageType: 'BASE'
+    })
+  });
+
+  const data = await response.json();
+  
+  if (data.status === 'SUCCESS') {
+    console.log('eSIM purchased successfully!');
+    console.log('ICCID:', data.esimDetails.iccid);
+    console.log('QR Code:', data.esimDetails.qrCodeUrl);
+  }
+  
+  return data;
+}
+
+// Purchase with card
+async function purchaseWithCard(packageCode) {
+  const response = await fetch('https://api.vellosim.com/api/esim/buy', {
+    method: 'POST',
+    headers: {
+      'Authorization': 'Bearer YOUR_API_KEY',
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      packageCode: packageCode,
+      paymentMethod: 'CARD',
+      packageType: 'BASE'
+    })
+  });
+
+  const data = await response.json();
+  
+  if (data.status === 'PENDING' && data.paymentUrl) {
+    // Redirect user to payment page
+    window.location.href = data.paymentUrl;
+  }
+  
+  return data;
+}
+
+// Top-up existing eSIM
+async function topUpEsim(esimId, packageCode) {
+  const response = await fetch('https://api.vellosim.com/api/esim/buy', {
+    method: 'POST',
+    headers: {
+      'Authorization': 'Bearer YOUR_API_KEY',
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      packageCode: packageCode,
+      paymentMethod: 'WALLET',
+      packageType: 'TOPUP',
+      esimId: esimId
+    })
+  });
+
+  return await response.json();
+}
+```
+
+```python Python
+import requests
+
+def purchase_esim(package_code, payment_method='WALLET'):
+    """Purchase an eSIM package"""
+    headers = {
+        'Authorization': 'Bearer YOUR_API_KEY',
+        'Content-Type': 'application/json'
+    }
+    
+    payload = {
+        'packageCode': package_code,
+        'paymentMethod': payment_method,
+        'packageType': 'BASE'
+    }
+    
+    response = requests.post(
+        'https://api.vellosim.com/api/esim/buy',
+        headers=headers,
+        json=payload
+    )
+    
+    data = response.json()
+    
+    if data['status'] == 'SUCCESS':
+        print(f"eSIM purchased successfully!")
+        print(f"Transaction ID: {data['transactionId']}")
+        if 'esimDetails' in data:
+            print(f"ICCID: {data['esimDetails']['iccid']}")
+            print(f"QR Code: {data['esimDetails']['qrCodeUrl']}")
+    elif data['status'] == 'PENDING':
+        print(f"Payment pending. Payment URL: {data.get('paymentUrl')}")
+    
+    return data
+
+# Usage
+result = purchase_esim('US_5GB_30D', 'WALLET')
+
+# Top-up example
+def topup_esim(esim_id, package_code):
+    """Top-up an existing eSIM"""
+    headers = {
+        'Authorization': 'Bearer YOUR_API_KEY',
+        'Content-Type': 'application/json'
+    }
+    
+    payload = {
+        'packageCode': package_code,
+        'paymentMethod': 'WALLET',
+        'packageType': 'TOPUP',
+        'esimId': esim_id
+    }
+    
+    response = requests.post(
+        'https://api.vellosim.com/api/esim/buy',
+        headers=headers,
+        json=payload
+    )
+    
+    return response.json()
+```
+
+```php PHP
+<?php
+function purchaseEsim($packageCode, $paymentMethod = 'WALLET') {
+    $apiKey = 'YOUR_API_KEY';
+    
+    $data = [
+        'packageCode' => $packageCode,
+        'paymentMethod' => $paymentMethod,
+        'packageType' => 'BASE'
+    ];
+    
+    $ch = curl_init('https://api.vellosim.com/api/esim/buy');
+    curl_setopt($ch, CURLOPT_POST, true);
+    curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_HTTPHEADER, [
+        'Authorization: Bearer ' . $apiKey,
+        'Content-Type: application/json'
+    ]);
+    
+    $response = curl_exec($ch);
+    $result = json_decode($response, true);
+    
+    curl_close($ch);
+    
+    if ($result['status'] === 'SUCCESS') {
+        echo "eSIM purchased successfully!\n";
+        echo "Transaction ID: " . $result['transactionId'] . "\n";
+        
+        if (isset($result['esimDetails'])) {
+            echo "ICCID: " . $result['esimDetails']['iccid'] . "\n";
+            echo "QR Code: " . $result['esimDetails']['qrCodeUrl'] . "\n";
+        }
+    } elseif ($result['status'] === 'PENDING') {
+        echo "Payment pending. Redirect to: " . $result['paymentUrl'] . "\n";
+    }
+    
+    return $result;
+}
+
+// Usage
+$result = purchaseEsim('US_5GB_30D', 'WALLET');
+?>
+```
+
+</CodeGroup>
+
+## Example Response
+
+<ResponseExample>
+
+```json 201 - Success (Wallet Payment)
+{
+  "transactionId": "esim_1699564800_12345",
+  "status": "SUCCESS",
+  "package": {
+    "packageCode": "US_5GB_30D",
+    "packageName": "USA 5GB - 30 Days",
+    "price": 8000,
+    "currency": "NGN"
+  },
+  "esimDetails": {
+    "esimId": "esim_64f8a1b2c3d4e5f6a7b8c9d0",
+    "iccid": "8944500123456789012",
+    "qrCodeUrl": "https://vellosim.com/qr/abc123",
+    "activationCode": "LPA:1$smdp.address$matchingId",
+    "smdpAddress": "smdp.gsma.com",
+    "matchingId": "ABC-123-DEF-456"
+  }
+}
+```
+
+```json 201 - Pending (Card Payment)
+{
+  "transactionId": "esim_1699564800_12346",
+  "status": "PENDING",
+  "package": {
+    "packageCode": "EU_10GB_15D",
+    "packageName": "Europe 10GB - 15 Days",
+    "price": 12000,
+    "currency": "NGN"
+  },
+  "paymentUrl": "https://checkout.paystack.com/xyz789",
+  "paystackReference": "xyz789abc"
+}
+```
+
+```json 201 - Pending (Bank Transfer)
+{
+  "transactionId": "esim_1699564800_12347",
+  "status": "PENDING",
+  "package": {
+    "packageCode": "ASIA_20GB_30D",
+    "packageName": "Asia 20GB - 30 Days",
+    "price": 20000,
+    "currency": "NGN"
+  },
+  "bankAccounts": [
+    {
+      "bankName": "First Bank of Nigeria",
+      "accountNumber": "1234567890",
+      "accountName": "Vellosim Technologies",
+      "expiryDate": "2024-11-15T10:30:00Z"
+    }
+  ],
+  "trackingReference": "VLS-BANK-12347"
+}
+```
+
+```json 400 - Insufficient Balance
+{
+  "success": false,
+  "message": "Insufficient wallet balance",
+  "error": {
+    "code": "INSUFFICIENT_BALANCE",
+    "details": "Your wallet balance is NGN 5,000 but package costs NGN 8,000. Please fund your wallet."
+  }
+}
+```
+
+```json 404 - Package Not Found
+{
+  "success": false,
+  "message": "Package not found",
+  "error": {
+    "code": "PACKAGE_NOT_FOUND",
+    "details": "The specified package code does not exist"
+  }
+}
+```
+
+</ResponseExample>
+
+## Payment Methods
+
+| Method | Processing Time | Notes |
+|--------|----------------|-------|
+| **WALLET** | Instant | eSIM created immediately |
+| **CARD** | 1-5 minutes | Redirects to payment gateway |
+| **BANK_TRANSFER** | 10-30 minutes | Manual verification required |
+| **MOBILE_MONEY** | 2-10 minutes | Country-specific |
+| **APPLE_PAY** | Instant | iOS devices only |
+
+## Payment Flow
+
+<Steps>
+  <Step title="Initiate Purchase">
+    Call the `/api/esim/buy` endpoint with package details
+  </Step>
+  
+  <Step title="Handle Response">
+    - **SUCCESS**: eSIM created (wallet payment)
+    - **PENDING**: Payment required (card/bank transfer)
+  </Step>
+  
+  <Step title="Complete Payment">
+    For pending payments:
+    - **Card**: Redirect to `paymentUrl`
+    - **Bank Transfer**: Show bank account details
+  </Step>
+  
+  <Step title="Confirm Payment">
+    Call `/api/esim/confirm-payment` or wait for webhook
+  </Step>
+  
+  <Step title="Retrieve eSIM">
+    eSIM details delivered via webhook or retrieve using `/api/esim/:esimId`
+  </Step>
+</Steps>
+
+## Error Handling
+
+<AccordionGroup>
+  <Accordion title="Insufficient Balance">
+    **Code**: `INSUFFICIENT_BALANCE`
+    
+    **Solution**: Check wallet balance before purchase or prompt user to fund wallet
+    
+    ```javascript
+    const balance = await getWalletBalance();
+    if (balance < packagePrice) {
+      // Redirect to fund wallet page
+      redirectToFundWallet();
+    } else {
+      await purchaseEsim(packageCode);
+    }
+    ```
+  </Accordion>
+
+  <Accordion title="Package Not Available">
+    **Code**: `PACKAGE_NOT_FOUND` or `PACKAGE_UNAVAILABLE`
+    
+    **Solution**: Refresh package list or show alternative packages
+  </Accordion>
+
+  <Accordion title="Payment Failed">
+    **Code**: `PAYMENT_FAILED`
+    
+    **Solution**: Retry payment or try different payment method
+  </Accordion>
+
+  <Accordion title="Top-Up Validation">
+    **Code**: `INVALID_TOPUP`
+    
+    **Solution**: Verify eSIM ID and package compatibility
+    
+    ```javascript
+    // Check if eSIM supports top-up
+    const esim = await getEsimById(esimId);
+    if (!esim.topUpAvailable) {
+      console.error('This eSIM does not support top-up');
+    }
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Webhooks
+
+Set up a webhook to receive real-time notifications about purchase status:
+
+```json
+{
+  "event": "esim.purchased",
+  "data": {
+    "transactionId": "esim_1699564800_12345",
+    "status": "SUCCESS",
+    "esimId": "esim_64f8a1b2c3d4e5f6a7b8c9d0",
+    "iccid": "8944500123456789012",
+    "qrCodeUrl": "https://vellosim.com/qr/abc123"
+  },
+  "timestamp": "2024-11-10T10:30:00Z"
+}
+```
+
+Learn more about [webhooks setup](/guides/webhooks).
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Confirm Payment" icon="check" href="/api-reference/purchase/confirm">
+    Confirm pending payments
+  </Card>
+  <Card title="Get My eSIMs" icon="list" href="/api-reference/orders/my-esims">
+    View purchased eSIMs
+  </Card>
+  <Card title="Webhooks" icon="webhook" href="/guides/webhooks">
+    Set up payment notifications
+  </Card>
+  <Card title="Error Handling" icon="triangle-exclamation" href="/guides/error-handling">
+    Handle purchase errors
+  </Card>
+</CardGroup>

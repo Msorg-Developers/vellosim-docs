@@ -1,0 +1,366 @@
+---
+title: 'Get eSIM Packages'
+api: 'GET /api/esim/packages'
+description: 'Get eSIM packages filtered by region with pricing'
+---
+
+## Endpoint
+
+```
+GET /api/esim/packages
+```
+
+## Description
+
+This endpoint returns eSIM packages available for a specific region. Prices are automatically calculated based on your account currency (NGN or USD).
+
+## Authentication
+
+<ParamField header="Authorization" type="string" required>
+  Bearer token for authentication
+  ```
+  Bearer YOUR_API_KEY
+  ```
+</ParamField>
+
+## Query Parameters
+
+<ParamField query="regionCode" type="string" required>
+  Region code to filter packages (e.g., "US", "EU", "ASIA")
+  
+  Get available region codes from `/api/esim/regions`
+</ParamField>
+
+<ParamField query="type" type="string" optional>
+  Package type filter:
+  - `BASE` - New eSIM packages (default)
+  - `TOPUP` - Top-up packages for existing eSIMs
+</ParamField>
+
+<ParamField query="regionType" type="string" optional>
+  Filter by region type:
+  - `LC` - Local (single country)
+  - `RG` - Regional (multi-country)
+  - `GL` - Global
+</ParamField>
+
+<ParamField query="packageCode" type="string" optional>
+  Specific package code to retrieve (required when type is TOPUP)
+</ParamField>
+
+## Response
+
+<ResponseField name="packages" type="array">
+  Array of package objects with pricing
+  <Expandable title="Package Object">
+    <ResponseField name="packageCode" type="string">
+      Unique package identifier
+    </ResponseField>
+    <ResponseField name="packageName" type="string">
+      Package display name
+    </ResponseField>
+    <ResponseField name="data" type="string">
+      Data allowance (e.g., "5GB", "10GB", "Unlimited")
+    </ResponseField>
+    <ResponseField name="validity" type="number">
+      Validity period in days
+    </ResponseField>
+    <ResponseField name="price" type="number">
+      Package price in your currency
+    </ResponseField>
+    <ResponseField name="currency" type="string">
+      Your account currency (NGN or USD)
+    </ResponseField>
+    <ResponseField name="originalPriceUSD" type="number">
+      Original price in USD
+    </ResponseField>
+    <ResponseField name="coverage" type="array">
+      List of countries covered (for regional packages)
+    </ResponseField>
+    <ResponseField name="networkProviders" type="array">
+      Available network providers
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Example Request
+
+<CodeGroup>
+
+```bash cURL
+# Get packages for United States
+curl -X GET 'https://api.vellosim.com/api/esim/packages?regionCode=US&type=BASE' \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -H "Content-Type: application/json"
+
+# Get top-up packages for a specific eSIM
+curl -X GET 'https://api.vellosim.com/api/esim/packages?regionCode=US&type=TOPUP&packageCode=US_5GB_30D' \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -H "Content-Type: application/json"
+```
+
+```javascript JavaScript
+// Get base packages for a region
+async function getPackages(regionCode) {
+  const response = await fetch(
+    `https://api.vellosim.com/api/esim/packages?regionCode=${regionCode}&type=BASE`,
+    {
+      method: 'GET',
+      headers: {
+        'Authorization': 'Bearer YOUR_API_KEY',
+        'Content-Type': 'application/json'
+      }
+    }
+  );
+
+  const packages = await response.json();
+  return packages;
+}
+
+// Usage
+const usPackages = await getPackages('US');
+console.log(`Found ${usPackages.length} packages for USA`);
+
+// Get top-up options
+async function getTopUpOptions(regionCode, packageCode) {
+  const response = await fetch(
+    `https://api.vellosim.com/api/esim/packages?regionCode=${regionCode}&type=TOPUP&packageCode=${packageCode}`,
+    {
+      method: 'GET',
+      headers: {
+        'Authorization': 'Bearer YOUR_API_KEY',
+        'Content-Type': 'application/json'
+      }
+    }
+  );
+
+  return await response.json();
+}
+```
+
+```python Python
+import requests
+
+def get_packages(region_code, package_type='BASE'):
+    """Get eSIM packages for a region"""
+    headers = {
+        'Authorization': 'Bearer YOUR_API_KEY',
+        'Content-Type': 'application/json'
+    }
+    
+    params = {
+        'regionCode': region_code,
+        'type': package_type
+    }
+    
+    response = requests.get(
+        'https://api.vellosim.com/api/esim/packages',
+        headers=headers,
+        params=params
+    )
+    
+    return response.json()
+
+# Get packages for Europe
+eu_packages = get_packages('EU')
+print(f"Found {len(eu_packages)} packages for Europe")
+
+# Filter by data size
+large_packages = [p for p in eu_packages if '10GB' in p['data']]
+print(f"{len(large_packages)} packages with 10GB+ data")
+```
+
+```php PHP
+<?php
+function getPackages($regionCode, $type = 'BASE') {
+    $apiKey = 'YOUR_API_KEY';
+    
+    $url = 'https://api.vellosim.com/api/esim/packages?' . http_build_query([
+        'regionCode' => $regionCode,
+        'type' => $type
+    ]);
+    
+    $ch = curl_init($url);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_HTTPHEADER, [
+        'Authorization: Bearer ' . $apiKey,
+        'Content-Type: application/json'
+    ]);
+    
+    $response = curl_exec($ch);
+    $packages = json_decode($response, true);
+    
+    curl_close($ch);
+    
+    return $packages;
+}
+
+// Get packages for Asia
+$asiaPackages = getPackages('ASIA');
+echo "Found " . count($asiaPackages) . " packages for Asia\n";
+?>
+```
+
+</CodeGroup>
+
+## Example Response
+
+<ResponseExample>
+
+```json 200 - Success
+[
+  {
+    "packageCode": "US_5GB_30D",
+    "packageName": "USA 5GB - 30 Days",
+    "data": "5GB",
+    "validity": 30,
+    "price": 8000,
+    "currency": "NGN",
+    "originalPriceUSD": 10,
+    "coverage": ["United States"],
+    "networkProviders": ["AT&T", "T-Mobile", "Verizon"],
+    "dataType": "Data Only",
+    "speed": "4G/5G",
+    "activation": "Automatic upon installation",
+    "topUpAvailable": true
+  },
+  {
+    "packageCode": "US_10GB_30D",
+    "packageName": "USA 10GB - 30 Days",
+    "data": "10GB",
+    "validity": 30,
+    "price": 15000,
+    "currency": "NGN",
+    "originalPriceUSD": 18,
+    "coverage": ["United States"],
+    "networkProviders": ["AT&T", "T-Mobile", "Verizon"],
+    "dataType": "Data Only",
+    "speed": "4G/5G",
+    "activation": "Automatic upon installation",
+    "topUpAvailable": true
+  },
+  {
+    "packageCode": "US_UNLIMITED_30D",
+    "packageName": "USA Unlimited - 30 Days",
+    "data": "Unlimited",
+    "validity": 30,
+    "price": 25000,
+    "currency": "NGN",
+    "originalPriceUSD": 30,
+    "coverage": ["United States"],
+    "networkProviders": ["AT&T", "T-Mobile"],
+    "dataType": "Data Only",
+    "speed": "4G/5G (throttled after 50GB)",
+    "activation": "Automatic upon installation",
+    "topUpAvailable": false
+  }
+]
+```
+
+```json 400 - Bad Request
+{
+  "success": false,
+  "message": "Bad Request",
+  "error": {
+    "code": "MISSING_REGION_CODE",
+    "details": "regionCode parameter is required"
+  }
+}
+```
+
+```json 404 - Not Found
+{
+  "success": false,
+  "message": "Not Found",
+  "error": {
+    "code": "REGION_NOT_FOUND",
+    "details": "No packages found for the specified region"
+  }
+}
+```
+
+</ResponseExample>
+
+## Package Types
+
+| Type | Description | Use Case |
+|------|-------------|----------|
+| BASE | New eSIM packages | First-time purchase for a region |
+| TOPUP | Data top-up packages | Add data to existing eSIM |
+
+## Pricing
+
+- Prices are automatically converted to your account currency
+- NGN prices include the website's price increment percentage
+- USD prices are shown for reference
+- All prices are final (no hidden fees)
+
+<Note>
+  Exchange rates and pricing increments are configured in your account settings
+</Note>
+
+## Use Cases
+
+<AccordionGroup>
+  <Accordion title="Display Package Catalog">
+    Show available packages in your UI:
+    
+    ```javascript
+    async function displayPackages(regionCode) {
+      const packages = await getPackages(regionCode);
+      
+      packages.forEach(pkg => {
+        console.log(`${pkg.packageName}: ${pkg.currency} ${pkg.price}`);
+        console.log(`Data: ${pkg.data}, Validity: ${pkg.validity} days`);
+        console.log(`Networks: ${pkg.networkProviders.join(', ')}\n`);
+      });
+    }
+    ```
+  </Accordion>
+
+  <Accordion title="Filter by Price Range">
+    Let users filter packages by their budget:
+    
+    ```javascript
+    function filterByPrice(packages, minPrice, maxPrice) {
+      return packages.filter(pkg => 
+        pkg.price >= minPrice && pkg.price <= maxPrice
+      );
+    }
+    
+    const affordablePackages = filterByPrice(packages, 0, 10000);
+    ```
+  </Accordion>
+
+  <Accordion title="Show Top-Up Options">
+    Display data top-up options for existing eSIMs:
+    
+    ```javascript
+    async function getTopUpOptions(esimPackageCode) {
+      const topups = await fetch(
+        `/api/esim/packages?regionCode=US&type=TOPUP&packageCode=${esimPackageCode}`,
+        { headers: { 'Authorization': 'Bearer YOUR_API_KEY' } }
+      ).then(r => r.json());
+      
+      return topups;
+    }
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Purchase eSIM" icon="shopping-cart" href="/api-reference/purchase/buy">
+    Buy an eSIM package
+  </Card>
+  <Card title="Get Package Details" icon="info" href="/api-reference/esim/package-details">
+    Get detailed info for a specific package
+  </Card>
+  <Card title="Top Destinations" icon="star" href="/api-reference/esim/top-destinations">
+    View popular destinations
+  </Card>
+  <Card title="Integration Guide" icon="code" href="/guides/package-catalog">
+    Build a package catalog UI
+  </Card>
+</CardGroup>

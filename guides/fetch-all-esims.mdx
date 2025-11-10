@@ -1,0 +1,281 @@
+---
+title: "Fetch All eSIMs"
+description: "Retrieve list of all eSIMs with pagination, filtering, and search"
+---
+
+## Overview
+
+Retrieve all eSIMs purchased by your users with support for pagination, filtering by status or region, and search functionality. This endpoint is essential for building eSIM management dashboards and customer portals.
+
+## Quick Start
+
+<CodeGroup>
+
+```javascript JavaScript
+async function getAllEsims(page = 1, limit = 20) {
+  const response = await fetch(
+    `https://api.vellosim.com/api/esim/my-esims?page=${page}&limit=${limit}`,
+    {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${API_KEY}`,
+        'Content-Type': 'application/json'
+      }
+    }
+  );
+  
+  const data = await response.json();
+  return data;
+}
+
+// Usage
+const result = await getAllEsims(1, 20);
+console.log(`Total eSIMs: ${result.total}`);
+console.log(`eSIMs on this page: ${result.esims.length}`);
+```
+
+```python Python
+import requests
+
+def get_all_esims(page=1, limit=20):
+    """Get all eSIMs with pagination"""
+    headers = {
+        'Authorization': f'Bearer {API_KEY}',
+        'Content-Type': 'application/json'
+    }
+    
+    params = {
+        'page': page,
+        'limit': limit
+    }
+    
+    response = requests.get(
+        'https://api.vellosim.com/api/esim/my-esims',
+        headers=headers,
+        params=params
+    )
+    
+    data = response.json()
+    return data
+
+# Usage
+result = get_all_esims(page=1, limit=20)
+print(f"Total eSIMs: {result['total']}")
+print(f"eSIMs on this page: {len(result['esims'])}")
+```
+
+```php PHP
+<?php
+function getAllEsims($page = 1, $limit = 20) {
+    $apiKey = 'YOUR_API_KEY';
+    
+    $url = 'https://api.vellosim.com/api/esim/my-esims?' . http_build_query([
+        'page' => $page,
+        'limit' => $limit
+    ]);
+    
+    $ch = curl_init($url);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_HTTPHEADER, [
+        'Authorization: Bearer ' . $apiKey,
+        'Content-Type: application/json'
+    ]);
+    
+    $response = curl_exec($ch);
+    $data = json_decode($response, true);
+    curl_close($ch);
+    
+    return $data;
+}
+
+// Usage
+$result = getAllEsims(1, 20);
+echo "Total eSIMs: {$result['total']}\n";
+echo "eSIMs on this page: " . count($result['esims']) . "\n";
+?>
+```
+
+```go Go
+package main
+
+import (
+    "encoding/json"
+    "fmt"
+    "io"
+    "net/http"
+)
+
+type EsimSummary struct {
+    EsimID        string `json:"esimId"`
+    ICCID         string `json:"iccid"`
+    Status        string `json:"status"`
+    DataRemaining string `json:"dataRemaining"`
+    ExpiryDate    string `json:"expiryDate"`
+    RegionName    string `json:"regionName"`
+}
+
+type Pagination struct {
+    CurrentPage  int `json:"currentPage"`
+    TotalPages   int `json:"totalPages"`
+    TotalItems   int `json:"totalItems"`
+    ItemsPerPage int `json:"itemsPerPage"`
+}
+
+type EsimsResponse struct {
+    Esims      []EsimSummary `json:"esims"`
+    Pagination Pagination    `json:"pagination"`
+    Total      int           `json:"total"`
+}
+
+func getAllEsims(apiKey string, page, limit int) (*EsimsResponse, error) {
+    url := fmt.Sprintf("https://api.vellosim.com/api/esim/my-esims?page=%d&limit=%d", 
+        page, limit)
+    
+    client := &http.Client{}
+    req, _ := http.NewRequest("GET", url, nil)
+    req.Header.Set("Authorization", "Bearer "+apiKey)
+    req.Header.Set("Content-Type", "application/json")
+    
+    resp, err := client.Do(req)
+    if err != nil {
+        return nil, err
+    }
+    defer resp.Body.Close()
+    
+    body, _ := io.ReadAll(resp.Body)
+    
+    var result EsimsResponse
+    json.Unmarshal(body, &result)
+    
+    return &result, nil
+}
+
+func main() {
+    result, _ := getAllEsims("YOUR_API_KEY", 1, 20)
+    fmt.Printf("Total eSIMs: %d\n", result.Total)
+    fmt.Printf("eSIMs on this page: %d\n", len(result.Esims))
+}
+```
+
+</CodeGroup>
+
+## Query Parameters
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `page` | number | 1 | Page number for pagination |
+| `limit` | number | 10 | Number of items per page (max: 100) |
+
+<Note>
+  The API returns complete eSIM objects with all details including QR codes, activation codes, and package information. Use client-side filtering for status, region, or search functionality.
+</Note>
+
+## Response Format
+
+```json
+{
+  "esims": [
+    {
+      "_id": "6912628b56d7f09edabbaf41",
+      "packageCode": "CKH513",
+      "orderNo": "B25111022090003",
+      "transactionId": "esim_1762812553430_6398",
+      "esimTranNo": "25111022090003",
+      "iccid": "8937204017176061359",
+      "imsi": "260010199691215",
+      "msisdn": "",
+      "ac": "LPA:1$rsp-eu.simlessly.com$D10983C0AE7444A8BA35FB8214410E5A",
+      "qrCodeUrl": "https://p.qrsim.net/c78f6799d2c440dea108147a5e3a192a.png",
+      "shortUrl": "https://p.qrsim.net/c78f6799d2c440dea108147a5e3a192a",
+      "smdpStatus": "RELEASED",
+      "eid": "",
+      "activeType": "2",
+      "expiredTime": "2026-05-09T22:09:15.000Z",
+      "totalVolume": 1073741824,
+      "totalDuration": 7,
+      "durationUnit": "DAY",
+      "orderUsage": 0,
+      "data_usage_remain": 1073741824,
+      "validity_usage_remain": 7,
+      "pin": "1833",
+      "puk": "78569098",
+      "apn": "plus",
+      "esimStatus": "GOT_RESOURCE",
+      "smsStatus": 0,
+      "dataType": 1,
+      "packageDetails": {
+        "name": "Qatar 1GB 7Days",
+        "code": "CKH513",
+        "volume": 1073741824,
+        "duration": 7,
+        "location": "QA",
+        "price": 8640,
+        "currency": "NGN",
+        "locationLogo": "https://flagcdn.com/w320/qa.png",
+        "description": "Qatar 1GB 7Days",
+        "speed": "3G/4G/5G",
+        "coverage": [
+          {
+            "locationName": "Qatar",
+            "locationLogo": "https://flagcdn.com/w320/qa.png",
+            "locationCode": "QA",
+            "operatorList": [
+              {
+                "operatorName": "ooredoo",
+                "networkType": "5G"
+              },
+              {
+                "operatorName": "Vodafone",
+                "networkType": "5G"
+              }
+            ]
+          }
+        ]
+      },
+      "isActive": true,
+      "createdAt": "2025-11-10T22:09:15.070Z",
+      "updatedAt": "2025-11-10T22:09:15.533Z",
+      "user": "69120363ed042b4afb7aca90",
+      "transactionRef": "6912628a56d7f09edabbaf3d",
+      "__v": 0
+    }
+  ],
+  "total": 3,
+  "page": 1,
+  "limit": 10,
+  "totalPages": 1
+}
+```
+
+## Response Fields
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `esims` | array | Array of eSIM objects with complete details |
+| `esims[]._id` | string | Unique eSIM identifier (use this for esimId in top-ups) |
+| `esims[].iccid` | string | Integrated Circuit Card ID |
+| `esims[].transactionId` | string | Purchase transaction identifier |
+| `esims[].orderNo` | string | Order reference number |
+| `esims[].ac` | string | Full LPA activation code |
+| `esims[].qrCodeUrl` | string | QR code image URL |
+| `esims[].shortUrl` | string | Short URL to QR code page |
+| `esims[].esimStatus` | string | eSIM status (GOT_RESOURCE, etc.) |
+| `esims[].totalVolume` | number | Total data in bytes |
+| `esims[].data_usage_remain` | number | Remaining data in bytes |
+| `esims[].orderUsage` | number | Data used in bytes |
+| `esims[].totalDuration` | number | Total validity period |
+| `esims[].validity_usage_remain` | number | Remaining validity days |
+| `esims[].durationUnit` | string | Time unit (DAY, MONTH, etc.) |
+| `esims[].expiredTime` | string | ISO 8601 expiry timestamp |
+| `esims[].pin` | string | SIM PIN code |
+| `esims[].puk` | string | SIM PUK code |
+| `esims[].apn` | string | Access Point Name |
+| `esims[].packageDetails` | object | Complete package information with coverage |
+| `esims[].isActive` | boolean | Whether eSIM is active |
+| `esims[].createdAt` | string | Creation timestamp |
+| `esims[].updatedAt` | string | Last update timestamp |
+| `total` | number | Total count of all eSIMs |
+| `page` | number | Current page number |
+| `limit` | number | Items per page |
+| `totalPages` | number | Total number of pages |
+

@@ -1,0 +1,426 @@
+---
+title: "Purchase eSIM"
+description: "Complete guide to purchasing eSIM packages using wallet balance"
+---
+
+## Overview
+
+Purchase eSIM packages using your wallet balance. All API purchases use WALLET payment method and are processed instantly. The system automatically checks your balance and creates the eSIM immediately upon successful payment.
+
+<Warning>
+  **Two-Step Process:** The purchase API returns a `transactionId` and basic package info. You must then query the eSIM endpoint using the `transactionId` to retrieve complete eSIM details including QR code and activation information.
+</Warning>
+
+## Quick Start
+
+<CodeGroup>
+
+```javascript JavaScript
+async function purchaseEsim(packageCode) {
+  // Step 1: Purchase eSIM
+  const purchaseResponse = await fetch('https://api.vellosim.com/api/esim/buy', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${API_KEY}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      packageCode: packageCode,
+      paymentMethod: 'WALLET',
+      packageType: 'BASE'
+    })
+  });
+  
+  const purchaseData = await purchaseResponse.json();
+  
+  if (purchaseData.status !== 'SUCCESS') {
+    throw new Error('Purchase failed');
+  }
+  
+  // Step 2: Fetch complete eSIM details
+  const esimResponse = await fetch(
+    `https://api.vellosim.com/api/esim/${purchaseData.transactionId}`,
+    {
+      headers: {
+        'Authorization': `Bearer ${API_KEY}`
+      }
+    }
+  );
+  
+  const esimData = await esimResponse.json();
+  
+  return {
+    transactionId: purchaseData.transactionId,
+    iccid: esimData.iccid,
+    qrCodeUrl: esimData.qrCodeUrl,
+    activationCode: esimData.ac,
+    packageDetails: esimData.packageDetails
+  };
+}
+
+// Usage
+const result = await purchaseEsim('PWZ5FXSJ3');
+console.log('eSIM purchased:', result.iccid);
+console.log('QR Code:', result.qrCodeUrl);
+```
+
+```python Python
+import requests
+
+def purchase_esim(package_code):
+    """Purchase eSIM and fetch complete details"""
+    headers = {
+        'Authorization': f'Bearer {API_KEY}',
+        'Content-Type': 'application/json'
+    }
+    
+    # Step 1: Purchase eSIM
+    purchase_data = {
+        'packageCode': package_code,
+        'paymentMethod': 'WALLET',
+        'packageType': 'BASE'
+    }
+    
+    purchase_response = requests.post(
+        'https://api.vellosim.com/api/esim/buy',
+        headers=headers,
+        json=purchase_data
+    )
+    
+    purchase_result = purchase_response.json()
+    
+    if purchase_result['status'] != 'SUCCESS':
+        raise Exception('Purchase failed')
+    
+    transaction_id = purchase_result['transactionId']
+    
+    # Step 2: Fetch complete eSIM details
+    esim_response = requests.get(
+        f'https://api.vellosim.com/api/esim/{transaction_id}',
+        headers=headers
+    )
+    
+    esim_data = esim_response.json()
+    
+    return {
+        'transactionId': transaction_id,
+        'iccid': esim_data['iccid'],
+        'qrCodeUrl': esim_data['qrCodeUrl'],
+        'activationCode': esim_data['ac'],
+        'packageDetails': esim_data['packageDetails']
+    }
+
+# Usage
+result = purchase_esim('PWZ5FXSJ3')
+print(f"eSIM purchased: {result['iccid']}")
+print(f"QR Code: {result['qrCodeUrl']}")
+```
+
+```php PHP
+<?php
+function purchaseEsim($packageCode) {
+    $apiKey = 'YOUR_API_KEY';
+    $headers = [
+        'Authorization: Bearer ' . $apiKey,
+        'Content-Type: application/json'
+    ];
+    
+    // Step 1: Purchase eSIM
+    $purchaseData = [
+        'packageCode' => $packageCode,
+        'paymentMethod' => 'WALLET',
+        'packageType' => 'BASE'
+    ];
+    
+    $ch = curl_init('https://api.vellosim.com/api/esim/buy');
+    curl_setopt($ch, CURLOPT_POST, true);
+    curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($purchaseData));
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+    
+    $purchaseResponse = curl_exec($ch);
+    $purchaseResult = json_decode($purchaseResponse, true);
+    curl_close($ch);
+    
+    if ($purchaseResult['status'] !== 'SUCCESS') {
+        throw new Exception('Purchase failed');
+    }
+    
+    $transactionId = $purchaseResult['transactionId'];
+    
+    // Step 2: Fetch complete eSIM details
+    $ch = curl_init("https://api.vellosim.com/api/esim/{$transactionId}");
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+    
+    $esimResponse = curl_exec($ch);
+    $esimData = json_decode($esimResponse, true);
+    curl_close($ch);
+    
+    return [
+        'transactionId' => $transactionId,
+        'iccid' => $esimData['iccid'],
+        'qrCodeUrl' => $esimData['qrCodeUrl'],
+        'activationCode' => $esimData['ac'],
+        'packageDetails' => $esimData['packageDetails']
+    ];
+}
+
+// Usage
+$result = purchaseEsim('PWZ5FXSJ3');
+echo "eSIM purchased: " . $result['iccid'] . "\n";
+echo "QR Code: " . $result['qrCodeUrl'];
+?>
+```
+
+```go Go
+package main
+
+import (
+    "bytes"
+    "encoding/json"
+    "fmt"
+    "io"
+    "net/http"
+)
+
+type PurchaseRequest struct {
+    PackageCode   string `json:"packageCode"`
+    PaymentMethod string `json:"paymentMethod"`
+    PackageType   string `json:"packageType"`
+}
+
+type PurchaseResponse struct {
+    TransactionID string `json:"transactionId"`
+    Status        string `json:"status"`
+    Package       struct {
+        PackageCode  string `json:"packageCode"`
+        Name         string `json:"name"`
+        Price        int    `json:"price"`
+        CurrencyCode string `json:"currencyCode"`
+    } `json:"package"`
+}
+
+type EsimDetails struct {
+    ICCID          string `json:"iccid"`
+    QRCodeURL      string `json:"qrCodeUrl"`
+    AC             string `json:"ac"`
+    TransactionID  string `json:"transactionId"`
+    PackageDetails struct {
+        Name string `json:"name"`
+        Code string `json:"code"`
+    } `json:"packageDetails"`
+}
+
+func purchaseEsim(apiKey, packageCode string) (*EsimDetails, error) {
+    // Step 1: Purchase eSIM
+    reqBody := PurchaseRequest{
+        PackageCode:   packageCode,
+        PaymentMethod: "WALLET",
+        PackageType:   "BASE",
+    }
+    
+    jsonData, _ := json.Marshal(reqBody)
+    
+    client := &http.Client{}
+    req, _ := http.NewRequest("POST", "https://api.vellosim.com/api/esim/buy", 
+        bytes.NewBuffer(jsonData))
+    req.Header.Set("Authorization", "Bearer "+apiKey)
+    req.Header.Set("Content-Type", "application/json")
+    
+    resp, err := client.Do(req)
+    if err != nil {
+        return nil, err
+    }
+    defer resp.Body.Close()
+    
+    body, _ := io.ReadAll(resp.Body)
+    
+    var purchaseResult PurchaseResponse
+    json.Unmarshal(body, &purchaseResult)
+    
+    if purchaseResult.Status != "SUCCESS" {
+        return nil, fmt.Errorf("purchase failed")
+    }
+    
+    // Step 2: Fetch complete eSIM details
+    req2, _ := http.NewRequest("GET", 
+        "https://api.vellosim.com/api/esim/"+purchaseResult.TransactionID, nil)
+    req2.Header.Set("Authorization", "Bearer "+apiKey)
+    
+    resp2, err := client.Do(req2)
+    if err != nil {
+        return nil, err
+    }
+    defer resp2.Body.Close()
+    
+    body2, _ := io.ReadAll(resp2.Body)
+    
+    var esimDetails EsimDetails
+    json.Unmarshal(body2, &esimDetails)
+    
+    return &esimDetails, nil
+}
+
+func main() {
+    result, err := purchaseEsim("YOUR_API_KEY", "PWZ5FXSJ3")
+    if err != nil {
+        fmt.Println("Purchase failed:", err)
+        return
+    }
+    fmt.Printf("eSIM purchased: %s\n", result.ICCID)
+    fmt.Printf("QR Code: %s\n", result.QRCodeURL)
+}
+```
+
+</CodeGroup>
+
+## Request Body
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `packageCode` | string | Yes | Package identifier (e.g., "US_5GB_30D") |
+| `paymentMethod` | string | Yes | Must be "WALLET" for API users |
+| `packageType` | string | Yes | Must be "BASE" for new eSIM purchase |
+
+<Note>
+  **Payment Method:** API users can only use `WALLET` payment. The system automatically checks your balance and deducts the amount instantly.
+</Note>
+
+## Purchase Response (Step 1)
+
+```json
+{
+  "transactionId": "esim_1762812333247_7046",
+  "status": "SUCCESS",
+  "package": {
+    "packageCode": "PWZ5FXSJ3",
+    "name": "Qatar 500MB 7Days",
+    "price": 4800,
+    "volume": 0,
+    "duration": 0,
+    "currencyCode": "NGN"
+  }
+}
+```
+
+<Note>
+  The purchase response contains minimal information. Use the `transactionId` to fetch complete eSIM details from `/api/esim/{transactionId}`.
+</Note>
+
+## Complete eSIM Details (Step 2)
+
+```json
+{
+  "_id": "69125f9f56d7f09edabbaf23",
+  "packageCode": "PWZ5FXSJ3",
+  "orderNo": "B25111021560007",
+  "transactionId": "esim_1762811805580_83",
+  "esimTranNo": "25111021560007",
+  "iccid": "8997250230000286674",
+  "imsi": "260066020045995",
+  "msisdn": "",
+  "ac": "LPA:1$rsp-eu.simlessly.com$ABAB05BFAFF44413AA72E3305C80887F",
+  "qrCodeUrl": "https://p.qrsim.net/674c5892006f4703871581a7bc3b8319.png",
+  "shortUrl": "https://p.qrsim.net/674c5892006f4703871581a7bc3b8319",
+  "smdpStatus": "RELEASED",
+  "eid": "",
+  "activeType": "2",
+  "expiredTime": "2026-05-09T21:56:47.000Z",
+  "totalVolume": 524288000,
+  "totalDuration": 7,
+  "durationUnit": "DAY",
+  "orderUsage": 0,
+  "data_usage_remain": 524288000,
+  "validity_usage_remain": 7,
+  "pin": "3266",
+  "puk": "58695894",
+  "apn": "internet",
+  "esimStatus": "GOT_RESOURCE",
+  "smsStatus": 2,
+  "dataType": 1,
+  "packageDetails": {
+    "name": "Qatar 500MB 7Days",
+    "code": "PWZ5FXSJ3",
+    "volume": 524288000,
+    "duration": 7,
+    "location": "QA",
+    "price": 4800,
+    "currency": "NGN",
+    "locationLogo": "https://flagcdn.com/w320/qa.png",
+    "description": "",
+    "speed": "3G/4G/5G",
+    "coverage": [
+      {
+        "locationName": "Qatar",
+        "locationLogo": "https://flagcdn.com/w320/qa.png",
+        "locationCode": "QA",
+        "operatorList": [
+          {
+            "operatorName": "Vodafone",
+            "networkType": "4G"
+          },
+          {
+            "operatorName": "ooredoo",
+            "networkType": "5G"
+          }
+        ]
+      }
+    ]
+  },
+  "isActive": true,
+  "createdAt": "2025-11-10T21:56:47.267Z",
+  "updatedAt": "2025-11-10T21:56:47.726Z",
+  "user": "69120363ed042b4afb7aca90",
+  "transactionRef": "69125f9e56d7f09edabbaf1f",
+  "__v": 0
+}
+```
+
+## Response Fields
+
+### Purchase Response Fields
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `transactionId` | string | Unique transaction identifier (use this to fetch eSIM details) |
+| `status` | string | "SUCCESS" or "FAILED" |
+| `package.packageCode` | string | Package identifier |
+| `package.name` | string | Package display name |
+| `package.price` | number | Price in smallest currency unit (kobo for NGN) |
+| `package.currencyCode` | string | Currency code (e.g., "NGN") |
+
+### eSIM Details Fields
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `iccid` | string | Integrated Circuit Card ID |
+| `ac` | string | Full LPA activation code (for installation) |
+| `qrCodeUrl` | string | QR code image URL for easy installation |
+| `shortUrl` | string | Short URL to QR code page |
+| `orderNo` | string | Order reference number |
+| `esimStatus` | string | Current eSIM status |
+| `totalVolume` | number | Total data in bytes |
+| `totalDuration` | number | Validity period |
+| `durationUnit` | string | Time unit (DAY, MONTH, etc.) |
+| `data_usage_remain` | number | Remaining data in bytes |
+| `validity_usage_remain` | number | Remaining validity days |
+| `expiredTime` | string | Expiration date (ISO 8601) |
+| `pin` | string | SIM PIN code |
+| `puk` | string | SIM PUK code |
+| `apn` | string | Access Point Name for data connection |
+| `packageDetails` | object | Complete package information with coverage |
+
+
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Top-Up eSIM" icon="arrow-up" href="/guides/topup-esim">
+    Add more data to existing eSIM
+  </Card>
+  <Card title="Fetch eSIM Details" icon="info-circle" href="/guides/fetch-esim">
+    Retrieve eSIM information anytime
+  </Card>
+  
+</CardGroup>

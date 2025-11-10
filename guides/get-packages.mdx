@@ -1,0 +1,365 @@
+---
+title: "Get eSIM Packages"
+description: "Learn how to fetch and display available eSIM packages for a region"
+---
+
+## Overview
+
+After a user selects a region, fetch available eSIM packages with their pricing, data allowance, and validity period. Packages come in two types: BASE (new eSIM) and TOPUP (add data to existing eSIM).
+
+## Quick Start
+
+<CodeGroup>
+
+```javascript JavaScript
+async function getPackages(regionCode) {
+  const response = await fetch(
+    `https://api.vellosim.com/api/esim/packages?regionCode=${regionCode}&type=BASE`,
+    {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${API_KEY}`,
+        'Content-Type': 'application/json'
+      }
+    }
+  );
+  
+  const packages = await response.json();  // Direct array response
+  return packages;
+}
+
+// Helper function to convert bytes to GB
+function bytesToGB(bytes) {
+  return (bytes / 1073741824).toFixed(2);
+}
+
+// Usage
+const packages = await getPackages('US');
+console.log(`Found ${packages.length} packages for United States`);
+packages.forEach(pkg => {
+  console.log(`${pkg.name}: ${bytesToGB(pkg.volume)}GB for ${pkg.duration} days`);
+});
+```
+
+```python Python
+import requests
+
+def get_packages(region_code, package_type='BASE'):
+    """Get available packages for a region"""
+    headers = {
+        'Authorization': f'Bearer {API_KEY}',
+        'Content-Type': 'application/json'
+    }
+    
+    params = {
+        'regionCode': region_code,
+        'type': package_type
+    }
+    
+    response = requests.get(
+        'https://api.vellosim.com/api/esim/packages',
+        headers=headers,
+        params=params
+    )
+    
+    packages = response.json()  # Direct array response
+    return packages
+
+def bytes_to_gb(bytes_value):
+    """Convert bytes to GB"""
+    return round(bytes_value / 1073741824, 2)
+
+# Usage
+packages = get_packages('US')
+print(f"Found {len(packages)} packages for United States")
+for pkg in packages:
+    data_gb = bytes_to_gb(pkg['volume'])
+    print(f"{pkg['name']}: {data_gb}GB for {pkg['duration']} days")
+```
+
+```php PHP
+<?php
+function getPackages($regionCode, $type = 'BASE') {
+    $apiKey = 'YOUR_API_KEY';
+    
+    $url = 'https://api.vellosim.com/api/esim/packages?' . http_build_query([
+        'regionCode' => $regionCode,
+        'type' => $type
+    ]);
+    
+    $ch = curl_init($url);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_HTTPHEADER, [
+        'Authorization: Bearer ' . $apiKey,
+        'Content-Type: application/json'
+    ]);
+    
+    $response = curl_exec($ch);
+    $packages = json_decode($response, true);  // Direct array response
+    curl_close($ch);
+    
+    return $packages;
+}
+
+function bytesToGB($bytes) {
+    return round($bytes / 1073741824, 2);
+}
+
+// Usage
+$packages = getPackages('US');
+echo "Found " . count($packages) . " packages for United States\n";
+foreach ($packages as $pkg) {
+    $dataGB = bytesToGB($pkg['volume']);
+    echo "{$pkg['name']}: {$dataGB}GB for {$pkg['duration']} days\n";
+}
+?>
+```
+
+```go Go
+package main
+
+import (
+    "encoding/json"
+    "fmt"
+    "io"
+    "net/http"
+)
+
+type Operator struct {
+    OperatorName string `json:"operatorName"`
+    NetworkType  string `json:"networkType"`
+}
+
+type LocationNetwork struct {
+    LocationName string     `json:"locationName"`
+    LocationLogo string     `json:"locationLogo"`
+    LocationCode string     `json:"locationCode"`
+    OperatorList []Operator `json:"operatorList"`
+}
+
+type Package struct {
+    PackageCode         string            `json:"packageCode"`
+    Name                string            `json:"name"`
+    Price               int               `json:"price"`
+    CurrencyCode        string            `json:"currencyCode"`
+    Duration            int               `json:"duration"`
+    Volume              int64             `json:"volume"`
+    Description         string            `json:"description"`
+    UnusedValidTime     int               `json:"unusedValidTime"`
+    DurationUnit        string            `json:"durationUnit"`
+    Location            string            `json:"location"`
+    LocationCode        string            `json:"locationCode"`
+    Speed               string            `json:"speed"`
+    LocationNetworkList []LocationNetwork `json:"locationNetworkList"`
+}
+
+func bytesToGB(bytes int64) float64 {
+    return float64(bytes) / 1073741824
+}
+
+func getPackages(apiKey, regionCode, packageType string) ([]Package, error) {
+    url := fmt.Sprintf("https://api.vellosim.com/api/esim/packages?regionCode=%s&type=%s", 
+        regionCode, packageType)
+    
+    client := &http.Client{}
+    req, _ := http.NewRequest("GET", url, nil)
+    req.Header.Set("Authorization", "Bearer "+apiKey)
+    req.Header.Set("Content-Type", "application/json")
+    
+    resp, err := client.Do(req)
+    if err != nil {
+        return nil, err
+    }
+    defer resp.Body.Close()
+    
+    body, _ := io.ReadAll(resp.Body)
+    
+    var packages []Package  // Direct array response
+    json.Unmarshal(body, &packages)
+    
+    return packages, nil
+}
+
+func main() {
+    packages, _ := getPackages("YOUR_API_KEY", "US", "BASE")
+    fmt.Printf("Found %d packages for United States\n", len(packages))
+    
+    for _, pkg := range packages {
+        dataGB := bytesToGB(pkg.Volume)
+        fmt.Printf("%s: %.2fGB for %d days\n", pkg.Name, dataGB, pkg.Duration)
+    }
+}
+```
+
+</CodeGroup>
+
+## Response Format
+
+The API returns a **direct array** of package objects:
+
+```json
+[
+  {
+    "packageCode": "CKH533",
+    "name": "United States 1GB 7Days",
+    "price": 2160,
+    "currencyCode": "NGN",
+    "duration": 7,
+    "volume": 1073741824,
+    "description": "United States 1GB 7Days",
+    "unusedValidTime": 180,
+    "durationUnit": "DAY",
+    "location": "US",
+    "locationCode": "US",
+    "speed": "3G/4G/5G",
+    "locationNetworkList": [
+      {
+        "locationName": "United States",
+        "locationLogo": "https://flagcdn.com/w320/us.png",
+        "locationCode": "US",
+        "operatorList": [
+          {
+            "operatorName": "T-Mobile",
+            "networkType": "5G"
+          }
+        ]
+      }
+    ]
+  }
+]
+```
+
+<Note>
+**Important:** The response is a direct array, not wrapped in an object with a `packages` key.
+</Note>
+
+## Response Fields
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `packageCode` | string | Unique identifier for the package |
+| `name` | string | Display name of the package |
+| `price` | number | Package price (in minor units, e.g., kobo for NGN) |
+| `currencyCode` | string | Currency code (e.g., "NGN", "USD") |
+| `duration` | number | Validity period duration |
+| `durationUnit` | string | Unit of validity ("DAY", "MONTH", etc.) |
+| `volume` | number | Data allowance in bytes (e.g., 1073741824 = 1GB) |
+| `description` | string | Package description |
+| `unusedValidTime` | number | Days package remains valid before activation |
+| `location` | string | Comma-separated list of country codes |
+| `locationCode` | string | Primary region/location code |
+| `speed` | string | Network speed (e.g., "3G/4G/5G") |
+| `locationNetworkList` | array | List of covered locations with operators |
+
+### Location Network Object
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `locationName` | string | Country/region name |
+| `locationLogo` | string | Flag icon URL from flagcdn.com |
+| `locationCode` | string | ISO country code |
+| `operatorList` | array | Available mobile operators |
+
+<Tip>
+**Data Volume Conversion:** The `volume` field is in bytes. Convert to GB: `volume / 1073741824`
+</Tip>
+
+## Understanding Location Networks
+
+Each package includes detailed information about supported locations and mobile operators:
+
+```javascript
+// Display supported countries and operators
+function displayPackageNetworks(pkg) {
+  console.log(`Package: ${pkg.name}`);
+  console.log(`Coverage: ${pkg.locationNetworkList.length} location(s)\n`);
+  
+  pkg.locationNetworkList.forEach(location => {
+    console.log(`📍 ${location.locationName} (${location.locationCode})`);
+    console.log(`   Flag: ${location.locationLogo}`);
+    console.log(`   Operators:`);
+    
+    location.operatorList.forEach(operator => {
+      console.log(`   - ${operator.operatorName} (${operator.networkType})`);
+    });
+    console.log('');
+  });
+}
+
+// Example: Multi-country package (Europe)
+const europePackages = await getPackages('EU-42');
+displayPackageNetworks(europePackages[0]);
+// Output:
+// Package: Europe 1GB 7Days
+// Coverage: 42 location(s)
+// 
+// 📍 United Kingdom (GB)
+//    Flag: https://flagcdn.com/w320/gb.png
+//    Operators:
+//    - Vodafone (5G)
+//    - O2 (5G)
+//    - 3 (5G)
+```
+
+## Query Parameters
+
+### Required Parameters
+
+- `regionCode` (required): The region code to fetch packages for (e.g., "US", "EU-42")
+
+### Optional Parameters
+
+- `type`: Package type filter
+  - `BASE`: New eSIM packages (default)
+  - `TOPUP`: Top-up packages for existing eSIMs
+- `regionType`: Filter by region type
+  - `LC`: Local (single country)
+  - `RG`: Regional (multi-country)
+  - `GL`: Global
+- `packageCode`: Specific package code (required when `type=TOPUP`)
+
+### Filter by Package Type
+
+```javascript
+// Get BASE packages (new eSIM)
+const basePackages = await fetch(
+  'https://api.vellosim.com/api/esim/packages?regionCode=US&type=BASE',
+  { headers: { 'Authorization': `Bearer ${API_KEY}` } }
+).then(r => r.json());
+
+// Get TOPUP packages (requires existing packageCode)
+const topupPackages = await fetch(
+  'https://api.vellosim.com/api/esim/packages?regionCode=US&type=TOPUP&packageCode=CKH533',
+  { headers: { 'Authorization': `Bearer ${API_KEY}` } }
+).then(r => r.json());
+
+// Top-up packages have TOPUP_ prefix in packageCode
+console.log(topupPackages[0].packageCode); // "TOPUP_P3ICIKSE8"
+```
+
+<Note>
+**Top-Up Packages:** When fetching top-up packages, you must provide the `packageCode` of the BASE package the user originally purchased. Top-up packages are filtered to only show compatible data add-ons for that eSIM.
+</Note>
+
+### Filter by Region Type
+
+```javascript
+// Get regional (multi-country) packages for Europe
+const regionalPackages = await fetch(
+  'https://api.vellosim.com/api/esim/packages?regionCode=EU-42&type=BASE&regionType=RG',
+  { headers: { 'Authorization': `Bearer ${API_KEY}` } }
+).then(r => r.json());
+```
+
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Purchase eSIM" icon="shopping-cart" href="/guides/purchase-esim">
+    Complete the purchase with selected package
+  </Card>
+  <Card title="Get Top-Up Packages" icon="arrow-up" href="/guides/topup-esim">
+    Add data to existing eSIM
+  </Card>
+  
+</CardGroup>

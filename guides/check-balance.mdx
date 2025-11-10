@@ -1,0 +1,158 @@
+---
+title: "Check Wallet Balance"
+description: "Learn how to check your wallet balance before making purchases"
+---
+
+## Overview
+
+Before making eSIM purchases, you can check your wallet balance to display it to users or verify sufficient funds are available. The system automatically checks balance during purchase, but displaying it beforehand improves user experience.
+
+## Quick Start
+
+<CodeGroup>
+
+```javascript JavaScript
+async function getBalance() {
+  const response = await fetch('https://api.vellosim.com/api/wallet/balance', {
+    method: 'GET',
+    headers: {
+      'Authorization': `Bearer ${API_KEY}`,
+      'Content-Type': 'application/json'
+    }
+  });
+  
+  const data = await response.json();
+  return data.balance;
+}
+
+// Usage
+const balance = await getBalance();
+console.log(`Available balance: ${balance.currency} ${balance.amount}`);
+```
+
+```python Python
+import requests
+
+def get_balance():
+    """Get wallet balance"""
+    headers = {
+        'Authorization': f'Bearer {API_KEY}',
+        'Content-Type': 'application/json'
+    }
+    
+    response = requests.get(
+        'https://api.vellosim.com/api/wallet/balance',
+        headers=headers
+    )
+    
+    data = response.json()
+    return data['balance']
+
+# Usage
+balance = get_balance()
+print(f"Available balance: {balance['currency']} {balance['amount']}")
+```
+
+```php PHP
+<?php
+function getBalance() {
+    $apiKey = 'YOUR_API_KEY';
+    
+    $ch = curl_init('https://api.vellosim.com/api/wallet/balance');
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_HTTPHEADER, [
+        'Authorization: Bearer ' . $apiKey,
+        'Content-Type: application/json'
+    ]);
+    
+    $response = curl_exec($ch);
+    $data = json_decode($response, true);
+    curl_close($ch);
+    
+    return $data['balance'];
+}
+
+// Usage
+$balance = getBalance();
+echo "Available balance: {$balance['currency']} {$balance['amount']}";
+?>
+```
+
+```go Go
+package main
+
+import (
+    "encoding/json"
+    "fmt"
+    "io"
+    "net/http"
+)
+
+type BalanceResponse struct {
+    Balance struct {
+        Amount   float64 `json:"amount"`
+        Currency string  `json:"currency"`
+    } `json:"balance"`
+}
+
+func getBalance(apiKey string) (*BalanceResponse, error) {
+    client := &http.Client{}
+    req, _ := http.NewRequest("GET", "https://api.vellosim.com/api/wallet/balance", nil)
+    req.Header.Set("Authorization", "Bearer "+apiKey)
+    req.Header.Set("Content-Type", "application/json")
+    
+    resp, err := client.Do(req)
+    if err != nil {
+        return nil, err
+    }
+    defer resp.Body.Close()
+    
+    body, _ := io.ReadAll(resp.Body)
+    
+    var result BalanceResponse
+    json.Unmarshal(body, &result)
+    
+    return &result, nil
+}
+
+func main() {
+    balance, _ := getBalance("YOUR_API_KEY")
+    fmt.Printf("Available balance: %s %.2f\n", 
+        balance.Balance.Currency, balance.Balance.Amount)
+}
+```
+
+</CodeGroup>
+
+## Response Format
+
+```json
+{
+  "balance": {
+    "amount": 50000.00,
+    "currency": "NGN"
+  },
+  "lastUpdated": "2024-01-15T10:30:00Z"
+}
+```
+
+## Response Fields
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `balance.amount` | number | Available balance amount |
+| `balance.currency` | string | Currency code (e.g., NGN, USD) |
+| `lastUpdated` | string | ISO 8601 timestamp of last balance update |
+
+## Next Steps
+
+<CardGroup cols={2}>
+
+  <Card title="Purchase eSIM" icon="shopping-cart" href="/guides/purchase-esim">
+    Use wallet balance to purchase eSIM packages
+  </Card>
+ 
+  <Card title="API Reference" icon="code" href="/api-reference/wallet/balance">
+    Complete API documentation
+  </Card>
+</CardGroup>
