@@ -16,10 +16,10 @@ This endpoint returns eSIM packages available for a specific region. Prices are 
 
 ## Authentication
 
-<ParamField header="Authorization" type="string" required>
-  Bearer token for authentication
+<ParamField header="X-API-Key" type="string" required>
+  API Key for authentication
   ```
-  Bearer YOUR_API_KEY
+  YOUR_API_KEY
   ```
 </ParamField>
 
@@ -90,12 +90,12 @@ This endpoint returns eSIM packages available for a specific region. Prices are 
 ```bash cURL
 # Get packages for United States
 curl -X GET 'https://api.vellosim.com/api/esim/packages?regionCode=US&type=BASE' \
-  -H "Authorization: Bearer YOUR_API_KEY" \
+  -H "X-API-Key: YOUR_API_KEY" \
   -H "Content-Type: application/json"
 
 # Get top-up packages for a specific eSIM
 curl -X GET 'https://api.vellosim.com/api/esim/packages?regionCode=US&type=TOPUP&packageCode=US_5GB_30D' \
-  -H "Authorization: Bearer YOUR_API_KEY" \
+  -H "X-API-Key: YOUR_API_KEY" \
   -H "Content-Type: application/json"
 ```
 
@@ -107,7 +107,7 @@ async function getPackages(regionCode) {
     {
       method: 'GET',
       headers: {
-        'Authorization': 'Bearer YOUR_API_KEY',
+        'X-API-Key': ' YOUR_API_KEY',
         'Content-Type': 'application/json'
       }
     }
@@ -128,7 +128,7 @@ async function getTopUpOptions(regionCode, packageCode) {
     {
       method: 'GET',
       headers: {
-        'Authorization': 'Bearer YOUR_API_KEY',
+        'X-API-Key': ' YOUR_API_KEY',
         'Content-Type': 'application/json'
       }
     }
@@ -144,7 +144,7 @@ import requests
 def get_packages(region_code, package_type='BASE'):
     """Get eSIM packages for a region"""
     headers = {
-        'Authorization': 'Bearer YOUR_API_KEY',
+        'X-API-Key': ' YOUR_API_KEY',
         'Content-Type': 'application/json'
     }
     
@@ -183,7 +183,7 @@ function getPackages($regionCode, $type = 'BASE') {
     $ch = curl_init($url);
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
     curl_setopt($ch, CURLOPT_HTTPHEADER, [
-        'Authorization: Bearer ' . $apiKey,
+        'X-API-Key: ' . $apiKey,
         'Content-Type: application/json'
     ]);
     
@@ -339,7 +339,7 @@ echo "Found " . count($asiaPackages) . " packages for Asia\n";
     async function getTopUpOptions(esimPackageCode) {
       const topups = await fetch(
         `/api/esim/packages?regionCode=US&type=TOPUP&packageCode=${esimPackageCode}`,
-        { headers: { 'Authorization': 'Bearer YOUR_API_KEY' } }
+        { headers: { 'X-API-Key': ' YOUR_API_KEY' } }
       ).then(r => r.json());
       
       return topups;

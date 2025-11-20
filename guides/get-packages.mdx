@@ -18,7 +18,7 @@ async function getPackages(regionCode) {
     {
       method: 'GET',
       headers: {
-        'Authorization': `Bearer ${API_KEY}`,
+        'X-API-Key': `API_KEY}`,
         'Content-Type': 'application/json'
       }
     }
@@ -47,7 +47,7 @@ import requests
 def get_packages(region_code, package_type='BASE'):
     """Get available packages for a region"""
     headers = {
-        'Authorization': f'Bearer {API_KEY}',
+        'X-API-Key': f' {API_KEY}',
         'Content-Type': 'application/json'
     }
     
@@ -90,7 +90,7 @@ function getPackages($regionCode, $type = 'BASE') {
     $ch = curl_init($url);
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
     curl_setopt($ch, CURLOPT_HTTPHEADER, [
-        'Authorization: Bearer ' . $apiKey,
+        'X-API-Key: ' . $apiKey,
         'Content-Type: application/json'
     ]);
     
@@ -163,7 +163,7 @@ func getPackages(apiKey, regionCode, packageType string) ([]Package, error) {
     
     client := &http.Client{}
     req, _ := http.NewRequest("GET", url, nil)
-    req.Header.Set("Authorization", "Bearer "+apiKey)
+    req.Header.Set("X-API-Key", apiKey)
     req.Header.Set("Content-Type", "application/json")
     
     resp, err := client.Do(req)
@@ -324,13 +324,13 @@ displayPackageNetworks(europePackages[0]);
 // Get BASE packages (new eSIM)
 const basePackages = await fetch(
   'https://api.vellosim.com/api/esim/packages?regionCode=US&type=BASE',
-  { headers: { 'Authorization': `Bearer ${API_KEY}` } }
+  { headers: { 'X-API-Key': `API_KEY}` } }
 ).then(r => r.json());
 
 // Get TOPUP packages (requires existing packageCode)
 const topupPackages = await fetch(
   'https://api.vellosim.com/api/esim/packages?regionCode=US&type=TOPUP&packageCode=CKH533',
-  { headers: { 'Authorization': `Bearer ${API_KEY}` } }
+  { headers: { 'X-API-Key': `API_KEY}` } }
 ).then(r => r.json());
 
 // Top-up packages have TOPUP_ prefix in packageCode
@@ -347,7 +347,7 @@ console.log(topupPackages[0].packageCode); // "TOPUP_P3ICIKSE8"
 // Get regional (multi-country) packages for Europe
 const regionalPackages = await fetch(
   'https://api.vellosim.com/api/esim/packages?regionCode=EU-42&type=BASE&regionType=RG',
-  { headers: { 'Authorization': `Bearer ${API_KEY}` } }
+  { headers: { 'X-API-Key': `API_KEY}` } }
 ).then(r => r.json());
 ```
 

@@ -18,7 +18,7 @@ async function getEsim(transactionId) {
     {
       method: 'GET',
       headers: {
-        'Authorization': `Bearer ${API_KEY}`,
+        'X-API-Key': `API_KEY}`,
         'Content-Type': 'application/json'
       }
     }
@@ -55,7 +55,7 @@ import requests
 def get_esim(transaction_id):
     """Get eSIM details by transaction ID"""
     headers = {
-        'Authorization': f'Bearer {API_KEY}',
+        'X-API-Key': f' {API_KEY}',
         'Content-Type': 'application/json'
     }
     
@@ -96,7 +96,7 @@ function getEsim($transactionId) {
     $ch = curl_init("https://api.vellosim.com/api/esim/{$transactionId}");
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
     curl_setopt($ch, CURLOPT_HTTPHEADER, [
-        'Authorization: Bearer ' . $apiKey,
+        'X-API-Key: ' . $apiKey,
         'Content-Type: application/json'
     ]);
     
@@ -164,7 +164,7 @@ func getEsim(apiKey, transactionID string) (*Esim, error) {
     
     client := &http.Client{}
     req, _ := http.NewRequest("GET", url, nil)
-    req.Header.Set("Authorization", "Bearer "+apiKey)
+    req.Header.Set("X-API-Key", apiKey)
     req.Header.Set("Content-Type", "application/json")
     
     resp, err := client.Do(req)

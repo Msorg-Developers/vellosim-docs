@@ -16,10 +16,10 @@ Retrieve a paginated list of all your eSIM orders with optional filtering by sta
 
 ## Authentication
 
-<ParamField header="Authorization" type="string" required>
-  Bearer token for authentication
+<ParamField header="X-API-Key" type="string" required>
+  API Key for authentication
   ```
-  Bearer YOUR_API_KEY
+  YOUR_API_KEY
   ```
 </ParamField>
 
@@ -75,15 +75,15 @@ Retrieve a paginated list of all your eSIM orders with optional filtering by sta
 ```bash cURL
 # Get all eSIMs
 curl -X GET 'https://api.vellosim.com/api/esim/my-esims' \
-  -H "Authorization: Bearer YOUR_API_KEY"
+  -H "X-API-Key: YOUR_API_KEY"
 
 # Get active eSIMs only
 curl -X GET 'https://api.vellosim.com/api/esim/my-esims?status=ACTIVE' \
-  -H "Authorization: Bearer YOUR_API_KEY"
+  -H "X-API-Key: YOUR_API_KEY"
 
 # Search eSIMs
 curl -X GET 'https://api.vellosim.com/api/esim/my-esims?search=USA&page=1&limit=20' \
-  -H "Authorization: Bearer YOUR_API_KEY"
+  -H "X-API-Key: YOUR_API_KEY"
 ```
 
 ```javascript JavaScript
@@ -94,7 +94,7 @@ async function getMyEsims(page = 1, limit = 10) {
     {
       method: 'GET',
       headers: {
-        'Authorization': 'Bearer YOUR_API_KEY',
+        'X-API-Key': ' YOUR_API_KEY',
         'Content-Type': 'application/json'
       }
     }
@@ -110,7 +110,7 @@ async function getActiveEsims() {
     {
       method: 'GET',
       headers: {
-        'Authorization': 'Bearer YOUR_API_KEY',
+        'X-API-Key': ' YOUR_API_KEY',
         'Content-Type': 'application/json'
       }
     }
@@ -126,7 +126,7 @@ async function searchEsims(query) {
     {
       method: 'GET',
       headers: {
-        'Authorization': 'Bearer YOUR_API_KEY',
+        'X-API-Key': ' YOUR_API_KEY',
         'Content-Type': 'application/json'
       }
     }
@@ -142,7 +142,7 @@ import requests
 def get_my_esims(page=1, limit=10, status=None, search=None):
     """Get user's eSIMs with optional filtering"""
     headers = {
-        'Authorization': 'Bearer YOUR_API_KEY',
+        'X-API-Key': ' YOUR_API_KEY',
         'Content-Type': 'application/json'
     }
     
@@ -200,7 +200,7 @@ function getMyEsims($page = 1, $limit = 10, $status = null, $search = null) {
     $ch = curl_init($url);
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
     curl_setopt($ch, CURLOPT_HTTPHEADER, [
-        'Authorization: Bearer ' . $apiKey,
+        'X-API-Key: ' . $apiKey,
         'Content-Type: application/json'
     ]);
     

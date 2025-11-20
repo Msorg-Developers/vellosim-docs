@@ -13,18 +13,25 @@ The Vellosim API provides a comprehensive solution for integrating eSIM services
 https://api.vellosim.com
 ```
 
-For development and testing:
-```
-http://localhost:8083
-```
+
 
 ## Authentication
 
-All API requests require authentication using a Bearer token. Include your API key in the Authorization header:
+All API requests require authentication using an API Key in the `X-API-Key` header.
 
+**Production:**
 ```bash
-Authorization: Bearer YOUR_API_KEY
+X-API-Key: vls_live_YOUR_API_KEY
 ```
+
+**Testing/Sandbox:**
+```bash
+X-API-Key: vls_test_YOUR_API_KEY
+```
+
+<Note>
+Use keys with `vls_live_` prefix for production and `vls_test_` prefix for testing/sandbox. The API automatically routes requests to the appropriate environment based on your key prefix.
+</Note>
 
 ### Getting Your API Key
 
@@ -44,7 +51,7 @@ Authorization: Bearer YOUR_API_KEY
 Include these headers in all requests:
 
 ```http
-Authorization: Bearer YOUR_API_KEY
+X-API-Key: YOUR_API_KEY
 Content-Type: application/json
 Accept: application/json
 ```

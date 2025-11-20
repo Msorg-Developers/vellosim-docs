@@ -44,7 +44,7 @@ class VellosimClient {
     this.client = axios.create({
       baseURL: process.env.VELLOSIM_BASE_URL || 'https://api.vellosim.com',
       headers: {
-        'Authorization': `Bearer ${apiKey}`,
+        'X-API-Key': `apiKey}`,
         'Content-Type': 'application/json'
       }
     });
@@ -128,7 +128,7 @@ class VellosimClient {
     this.client = axios.create({
       baseURL: process.env.VELLOSIM_BASE_URL || 'https://api.vellosim.com',
       headers: {
-        'Authorization': `Bearer ${apiKey}`,
+        'X-API-Key': `apiKey}`,
         'Content-Type': 'application/json'
       }
     });

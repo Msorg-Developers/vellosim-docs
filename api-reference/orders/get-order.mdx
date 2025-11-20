@@ -16,10 +16,10 @@ Retrieve complete details for a specific eSIM order including QR code, activatio
 
 ## Authentication
 
-<ParamField header="Authorization" type="string" required>
-  Bearer token for authentication
+<ParamField header="X-API-Key" type="string" required>
+  API Key for authentication
   ```
-  Bearer YOUR_API_KEY
+  YOUR_API_KEY
   ```
 </ParamField>
 
@@ -117,7 +117,7 @@ Retrieve complete details for a specific eSIM order including QR code, activatio
 
 ```bash cURL
 curl -X GET 'https://api.vellosim.com/api/esim/esim_64f8a1b2c3d4e5f6a7b8c9d0' \
-  -H "Authorization: Bearer YOUR_API_KEY" \
+  -H "X-API-Key: YOUR_API_KEY" \
   -H "Content-Type: application/json"
 ```
 
@@ -128,7 +128,7 @@ async function getEsimDetails(esimId) {
     {
       method: 'GET',
       headers: {
-        'Authorization': 'Bearer YOUR_API_KEY',
+        'X-API-Key': ' YOUR_API_KEY',
         'Content-Type': 'application/json'
       }
     }
@@ -156,7 +156,7 @@ from datetime import datetime
 def get_esim_details(esim_id):
     """Get detailed information for a specific eSIM"""
     headers = {
-        'Authorization': 'Bearer YOUR_API_KEY',
+        'X-API-Key': ' YOUR_API_KEY',
         'Content-Type': 'application/json'
     }
     
@@ -185,7 +185,7 @@ function getEsimDetails($esimId) {
     $ch = curl_init("https://api.vellosim.com/api/esim/{$esimId}");
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
     curl_setopt($ch, CURLOPT_HTTPHEADER, [
-        'Authorization: Bearer ' . $apiKey,
+        'X-API-Key: ' . $apiKey,
         'Content-Type: application/json'
     ]);
     

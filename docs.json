@@ -7,7 +7,7 @@
     "light": "#FF8C61",
     "dark": "#E5521F"
   },
-  "favicon": "/favicon.png",
+  "favicon": "https://res.cloudinary.com/dglkxgoei/image/upload/v1763628425/vello-sim-icon_blaq8v.png",
   "navigation": {
     "tabs": [
       {

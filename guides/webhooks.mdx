@@ -1,63 +1,573 @@
 ---
-title: "Webhooks"
-description: "Receive real-time notifications about eSIM order status changes"
+title: "Webhook Events Reference"
+description: "Complete reference for all webhook events sent by the Vellosim API"
 ---
 
-## Overview
+## Quick Reference
 
-Webhooks allow you to receive real-time HTTP notifications when events occur in your Vellosim account, such as order status changes, eSIM activation, or refunds.
+| Event Type | Trigger | Key Data |
+|------------|---------|----------|
+| `esim.created` | eSIM purchase complete, data ready | Full eSIM details with QR code |
+| `esim.activated` | eSIM activated on device | Status change, activation time |
+| `esim.data_updated` | Data usage changes | Usage amounts, remaining data |
+| `esim.usage_updated` | Usage requeried | Full usage statistics |
+| `esim.suspended` | eSIM suspended | Reason, previous status |
+| `esim.expired` | eSIM validity expired | Expiration details |
+| `esim.status_changed` | Any other status change | Before/after status |
+| `esim.requeried` | Manual data refresh | Updated eSIM data |
 
-## Setting Up Webhooks
+---
 
-1. Log in to your Vellosim dashboard
-2. Navigate to **Settings** > **Webhooks**
-3. Click **Add Webhook Endpoint**
-4. Enter your webhook URL
-5. Select the events you want to receive
-6. Save your webhook configuration
+## Common Payload Structure
 
-<Tip>
-  Your webhook endpoint must be publicly accessible and accept POST requests with JSON payloads.
-</Tip>
-
-## Webhook Events
-
-| Event | Description | Trigger |
-|-------|-------------|---------|
-| `order.created` | New eSIM order placed | When a purchase is completed |
-| `order.activated` | eSIM has been activated | When customer activates their eSIM |
-| `order.completed` | Order successfully completed | When eSIM delivery is confirmed |
-| `order.failed` | Order processing failed | When an order cannot be fulfilled |
-| `order.refunded` | Order has been refunded | When a refund is processed |
-| `order.expired` | eSIM package expired | When the validity period ends |
-
-## Webhook Payload
-
-All webhooks send a POST request with this structure:
+All webhooks share this base structure:
 
 ```json
 {
-  "event": "order.created",
-  "timestamp": "2024-11-10T10:30:00Z",
-  "data": {
-    "orderId": "ord_1234567890",
-    "esimId": "esim_abc123",
-    "packageCode": "US_1GB_7D",
-    "status": "pending",
-    "customerEmail": "customer@example.com",
-    "amount": 9.99,
-    "currency": "USD",
-    "createdAt": "2024-11-10T10:30:00Z"
+  "event": "string",        // Event type
+  "id": "string",           // Unique event ID
+  "timestamp": "string",    // ISO 8601 timestamp
+  "data": {                 // eSIM object (structure below)
+    // ... eSIM data ...
   },
-  "signature": "sha256_signature_here"
+  "previousStatus": "string",  // Optional: for status changes
+  "newStatus": "string",       // Optional: for status changes
+  "changes": {                 // Optional: changed fields
+    "fieldName": {
+      "old": "value",
+      "new": "value"
+    }
+  }
 }
 ```
 
-## Webhook Signatures
+---
 
-Vellosim signs all webhook payloads for security. Verify the signature to ensure the webhook is from Vellosim.
+## eSIM Data Object (Common to All Events)
 
-### Signature Verification
+```json
+{
+  // Identifiers
+  "id": "507f1f77bcf86cd799439011",
+  "transactionId": "esim_1762811805580_83",
+  "orderNo": "ORD2024110001",
+  "packageCode": "US-1GB-7D",
+  
+  // eSIM Credentials
+  "iccid": "8901234567890123456",
+  "imsi": "123456789012345",
+  "msisdn": "+1234567890",
+  "ac": "LPA:1$smdp.example.com$ABC-DEF-123",
+  "eid": "89012345678901234567890123456789012",
+  
+  // Activation
+  "qrCodeUrl": "https://api.vellosim.com/esim/qr/123.png",
+  "shortUrl": "https://esim.vls.io/abc123",
+  
+  // Status
+  "esimStatus": "CREATED | ACTIVATED | SUSPENDED | EXPIRED | etc.",
+  "smdpStatus": "RELEASED | DOWNLOADED | INSTALLED | etc.",
+  
+  // Data & Validity
+  "totalVolume": 1024,              // MB
+  "totalDuration": 7,               // days
+  "dataUsage": 512.5,              // MB used
+  "data_usage_remain": 511.5,      // MB remaining
+  "totalData": 1024,               // MB total allowance
+  "validity_usage_remain": 5,      // days remaining
+  
+  // Timestamps
+  "activateTime": "2024-11-10T12:00:00.000Z",
+  "expiredTime": "2024-11-17T12:00:00.000Z",
+  "lastUsageUpdate": "2024-11-10T15:30:00.000Z",
+  "createdAt": "2024-11-10T10:00:00.000Z",
+  "updatedAt": "2024-11-10T15:30:00.000Z",
+  
+  // Package Info
+  "packageDetails": {
+    "name": "USA 1GB - 7 Days",
+    "code": "US-1GB-7D",
+    "slug": "usa-1gb-7days",
+    "volume": 1024,
+    "duration": 7,
+    "location": "United States",
+    "locationLogo": "https://cdn.vellosim.com/flags/us.png",
+    "price": 9.99,
+    "currency": "USD",
+    "description": "1GB data for USA, valid for 7 days",
+    "speed": "4G LTE"
+  }
+}
+```
+
+---
+
+## Event Type Details
+
+### 1. `esim.created`
+
+**When**: eSIM purchase completed and resource details retrieved from provider
+
+**Timing**: 5-30 seconds after purchase
+
+**Full Example**:
+```json
+{
+  "event": "esim.created",
+  "id": "1699625400123_abc",
+  "timestamp": "2024-11-10T15:30:00.000Z",
+  "data": {
+    "id": "507f1f77bcf86cd799439011",
+    "transactionId": "esim_1762811805580_83",
+    "orderNo": "ORD2024110001",
+    "packageCode": "US-1GB-7D",
+    "iccid": "8901234567890123456",
+    "imsi": "123456789012345",
+    "msisdn": "+12025550123",
+    "ac": "LPA:1$smdp.provider.com$ACTIVATION123",
+    "qrCodeUrl": "https://api.vellosim.com/esim/qr/507f1f77bcf86cd799439011.png",
+    "shortUrl": "https://esim.vls.io/abc123",
+    "esimStatus": "CREATED",
+    "smdpStatus": "RELEASED",
+    "eid": null,
+    "totalVolume": 1024,
+    "totalDuration": 7,
+    "dataUsage": 0,
+    "data_usage_remain": 1024,
+    "totalData": 1024,
+    "validity_usage_remain": 7,
+    "activateTime": null,
+    "expiredTime": null,
+    "lastUsageUpdate": null,
+    "packageDetails": {
+      "name": "USA 1GB - 7 Days",
+      "code": "US-1GB-7D",
+      "volume": 1024,
+      "duration": 7,
+      "location": "United States",
+      "locationLogo": "https://cdn.vellosim.com/flags/us.png",
+      "price": 9.99,
+      "currency": "USD",
+      "description": "Stay connected in the USA with 1GB of high-speed data",
+      "speed": "4G LTE"
+    },
+    "createdAt": "2024-11-10T15:29:45.000Z",
+    "updatedAt": "2024-11-10T15:30:00.000Z"
+  }
+}
+```
+
+**Use Cases**:
+- Update your database with eSIM details
+- Send confirmation email with QR code
+- Display eSIM in user's dashboard
+- Generate invoice/receipt
+
+---
+
+### 2. `esim.activated`
+
+**When**: User installs and activates the eSIM profile on their device
+
+**Timing**: When provider notifies activation (typically within minutes of installation)
+
+**Full Example**:
+```json
+{
+  "event": "esim.activated",
+  "id": "1699628000456_def",
+  "timestamp": "2024-11-10T16:00:00.000Z",
+  "data": {
+    "id": "507f1f77bcf86cd799439011",
+    "transactionId": "esim_1762811805580_83",
+    "orderNo": "ORD2024110001",
+    "packageCode": "US-1GB-7D",
+    "iccid": "8901234567890123456",
+    "imsi": "123456789012345",
+    "msisdn": "+12025550123",
+    "esimStatus": "ACTIVATED",
+    "smdpStatus": "INSTALLED",
+    "eid": "89012345678901234567890123456789012",
+    "totalVolume": 1024,
+    "totalDuration": 7,
+    "dataUsage": 0,
+    "data_usage_remain": 1024,
+    "validity_usage_remain": 7,
+    "activateTime": "2024-11-10T16:00:00.000Z",
+    "expiredTime": "2024-11-17T16:00:00.000Z",
+    "lastUsageUpdate": "2024-11-10T16:00:00.000Z",
+    "createdAt": "2024-11-10T15:29:45.000Z",
+    "updatedAt": "2024-11-10T16:00:00.000Z"
+  },
+  "previousStatus": "CREATED",
+  "newStatus": "ACTIVATED"
+}
+```
+
+**Key Fields**:
+- `activateTime`: When activation occurred
+- `expiredTime`: Calculated expiration date
+- `eid`: Device identifier
+- `previousStatus`: Status before activation
+- `newStatus`: "ACTIVATED" or "IN_USE"
+
+**Use Cases**:
+- Start usage tracking
+- Send activation confirmation
+- Update analytics/reports
+- Trigger welcome message
+
+---
+
+### 3. `esim.data_updated`
+
+**When**: Data usage information changes (every few hours or at usage milestones)
+
+**Timing**: Varies (typically when 25%, 50%, 75%, 90%, 100% thresholds reached)
+
+**Full Example**:
+```json
+{
+  "event": "esim.data_updated",
+  "id": "1699641600789_ghi",
+  "timestamp": "2024-11-11T09:30:00.000Z",
+  "data": {
+    "id": "507f1f77bcf86cd799439011",
+    "transactionId": "esim_1762811805580_83",
+    "iccid": "8901234567890123456",
+    "esimStatus": "ACTIVATED",
+    "totalVolume": 1024,
+    "totalData": 1024,
+    "dataUsage": 512.5,
+    "data_usage_remain": 511.5,
+    "lastUsageUpdate": "2024-11-11T09:30:00.000Z",
+    "updatedAt": "2024-11-11T09:30:00.000Z"
+  },
+  "changes": {
+    "dataUsage": {
+      "old": 450.2,
+      "new": 512.5
+    },
+    "data_usage_remain": {
+      "old": 573.8,
+      "new": 511.5
+    }
+  }
+}
+```
+
+**Key Fields**:
+- `dataUsage`: Current usage in MB
+- `data_usage_remain`: Remaining data in MB
+- `changes`: Shows what changed from previous state
+
+**Use Cases**:
+- Track consumption patterns
+- Send low data alerts
+- Offer top-up/add-ons
+- Update usage charts
+
+---
+
+### 4. `esim.usage_updated`
+
+**When**: Complete usage information refreshed (data + validity)
+
+**Timing**: Periodic updates or after manual requery
+
+**Full Example**:
+```json
+{
+  "event": "esim.usage_updated",
+  "id": "1699655200321_jkl",
+  "timestamp": "2024-11-11T13:00:00.000Z",
+  "data": {
+    "id": "507f1f77bcf86cd799439011",
+    "transactionId": "esim_1762811805580_83",
+    "iccid": "8901234567890123456",
+    "esimStatus": "ACTIVATED",
+    "totalVolume": 1024,
+    "totalDuration": 7,
+    "dataUsage": 768.3,
+    "data_usage_remain": 255.7,
+    "validity_usage_remain": 4,
+    "activateTime": "2024-11-10T16:00:00.000Z",
+    "expiredTime": "2024-11-17T16:00:00.000Z",
+    "lastUsageUpdate": "2024-11-11T13:00:00.000Z",
+    "updatedAt": "2024-11-11T13:00:00.000Z"
+  },
+  "changes": {
+    "dataUsage": {
+      "old": 512.5,
+      "new": 768.3
+    },
+    "data_usage_remain": {
+      "old": 511.5,
+      "new": 255.7
+    },
+    "validity_usage_remain": {
+      "old": 5,
+      "new": 4
+    }
+  }
+}
+```
+
+**Key Fields**:
+- `dataUsage` + `data_usage_remain`: Data usage
+- `validity_usage_remain`: Days remaining
+- `lastUsageUpdate`: Timestamp of update
+
+**Use Cases**:
+- Comprehensive usage sync
+- Dashboard updates
+- Analytics refresh
+- Billing updates
+
+---
+
+### 5. `esim.suspended`
+
+**When**: eSIM is suspended (manual or automatic)
+
+**Timing**: Immediately when suspension occurs
+
+**Full Example**:
+```json
+{
+  "event": "esim.suspended",
+  "id": "1699714800999_mno",
+  "timestamp": "2024-11-11T16:30:00.000Z",
+  "data": {
+    "id": "507f1f77bcf86cd799439011",
+    "transactionId": "esim_1762811805580_83",
+    "iccid": "8901234567890123456",
+    "esimStatus": "REVOKED",
+    "dataUsage": 850.0,
+    "data_usage_remain": 174.0,
+    "updatedAt": "2024-11-11T16:30:00.000Z"
+  },
+  "previousStatus": "ACTIVATED",
+  "newStatus": "REVOKED"
+}
+```
+
+**Possible Status Values**:
+- `REVOKED`: Profile revoked
+- `CANCEL`: Order cancelled
+
+**Use Cases**:
+- Notify user of suspension
+- Display suspension reason
+- Offer reactivation options
+- Update access controls
+
+---
+
+### 6. `esim.expired`
+
+**When**: eSIM reaches end of validity period or data exhausted
+
+**Timing**: At expiration time or when data runs out
+
+**Full Example**:
+```json
+{
+  "event": "esim.expired",
+  "id": "1699801200123_pqr",
+  "timestamp": "2024-11-17T16:00:00.000Z",
+  "data": {
+    "id": "507f1f77bcf86cd799439011",
+    "transactionId": "esim_1762811805580_83",
+    "iccid": "8901234567890123456",
+    "esimStatus": "USED_EXPIRED",
+    "dataUsage": 980.5,
+    "data_usage_remain": 43.5,
+    "validity_usage_remain": 0,
+    "activateTime": "2024-11-10T16:00:00.000Z",
+    "expiredTime": "2024-11-17T16:00:00.000Z",
+    "updatedAt": "2024-11-17T16:00:00.000Z"
+  },
+  "previousStatus": "ACTIVATED",
+  "newStatus": "USED_EXPIRED"
+}
+```
+
+**Possible Status Values**:
+- `USED_UP`: Data fully consumed
+- `USED_EXPIRED`: Data used + validity expired
+- `UNUSED_EXPIRED`: Expired with unused data
+
+**Use Cases**:
+- Archive eSIM data
+- Offer renewal/repurchase
+- Generate usage report
+- Update analytics
+
+---
+
+### 7. `esim.status_changed`
+
+**When**: Any status change not covered by specific events
+
+**Timing**: Varies based on status change
+
+**Full Example**:
+```json
+{
+  "event": "esim.status_changed",
+  "id": "1699728000321_stu",
+  "timestamp": "2024-11-11T19:46:40.000Z",
+  "data": {
+    "id": "507f1f77bcf86cd799439011",
+    "transactionId": "esim_1762811805580_83",
+    "iccid": "8901234567890123456",
+    "esimStatus": "USED_UP",
+    "dataUsage": 1024,
+    "data_usage_remain": 0,
+    "validity_usage_remain": 3,
+    "updatedAt": "2024-11-11T19:46:40.000Z"
+  },
+  "previousStatus": "ACTIVATED",
+  "newStatus": "USED_UP"
+}
+```
+
+**Use Cases**:
+- Catch all status changes
+- Handle edge cases
+- Maintain audit trail
+- Debug status transitions
+
+---
+
+### 8. `esim.requeried`
+
+**When**: eSIM data manually refreshed from provider
+
+**Timing**: After admin or system requery operation
+
+**Full Example**:
+```json
+{
+  "event": "esim.requeried",
+  "id": "1699732800456_vwx",
+  "timestamp": "2024-11-11T21:00:00.000Z",
+  "data": {
+    "id": "507f1f77bcf86cd799439011",
+    "transactionId": "esim_1762811805580_83",
+    "orderNo": "ORD2024110001",
+    "iccid": "8901234567890123456",
+    "esimStatus": "ACTIVATED",
+    "dataUsage": 892.7,
+    "data_usage_remain": 131.3,
+    "validity_usage_remain": 3,
+    "lastUsageUpdate": "2024-11-11T21:00:00.000Z",
+    "updatedAt": "2024-11-11T21:00:00.000Z"
+  }
+}
+```
+
+**Use Cases**:
+- Sync latest provider data
+- Resolve data discrepancies
+- Force update in UI
+- Debugging/support
+
+---
+
+## eSIM Status Values
+
+| Status | Description | Triggers Event |
+|--------|-------------|----------------|
+| `PENDING` | Order placed, awaiting provider | - |
+| `CREATED` | eSIM created, ready for activation | `esim.created` |
+| `ACTIVATED` | Activated on device | `esim.activated` |
+| `IN_USE` | Currently in use (same as ACTIVATED) | `esim.activated` |
+| `SUSPENDED` | Temporarily suspended | `esim.suspended` |
+| `EXPIRED` | Validity expired | `esim.expired` |
+| `USED_UP` | Data fully consumed | `esim.expired` |
+| `USED_EXPIRED` | Data used + validity expired | `esim.expired` |
+| `UNUSED_EXPIRED` | Expired with unused data | `esim.expired` |
+| `CANCEL` | Order cancelled | `esim.suspended` |
+| `REVOKED` | Profile revoked | `esim.suspended` |
+| `FAILED` | Order failed | `esim.status_changed` |
+
+---
+
+## SMDP Status Values
+
+| Status | Description |
+|--------|-------------|
+| `RELEASED` | Profile released, ready for download |
+| `DOWNLOADED` | Profile downloaded to device |
+| `INSTALLED` | Profile installed on device |
+| `ENABLED` | Profile enabled for use |
+| `DISABLED` | Profile disabled |
+| `DELETED` | Profile deleted from device |
+
+---
+
+## Data Units
+
+All data-related fields use **megabytes (MB)** as the unit:
+
+```json
+{
+  "totalVolume": 1024,        // 1024 MB = 1 GB
+  "dataUsage": 512.5,         // 512.5 MB used
+  "data_usage_remain": 511.5, // 511.5 MB remaining
+  "totalData": 1024           // 1024 MB total allowance
+}
+```
+
+---
+
+## Time/Duration Units
+
+Validity duration typically in **days**:
+
+```json
+{
+  "totalDuration": 7,          // 7 days validity
+  "validity_usage_remain": 5   // 5 days remaining
+}
+```
+
+---
+
+## Timestamp Format
+
+All timestamps are in **ISO 8601 format** (UTC):
+
+```json
+{
+  "timestamp": "2024-11-10T15:30:00.000Z",
+  "activateTime": "2024-11-10T16:00:00.000Z",
+  "expiredTime": "2024-11-17T16:00:00.000Z"
+}
+```
+
+---
+
+## Webhook Headers
+
+Every webhook request includes these headers:
+
+```
+Content-Type: application/json
+X-Webhook-Signature: <hmac_sha256_signature>
+X-Webhook-Event: <event_type>
+X-Webhook-Id: <unique_event_id>
+X-Webhook-Timestamp: <iso8601_timestamp>
+User-Agent: Vellosim-Webhooks/1.0
+```
+
+---
+
+## Signature Verification
+
+Verify webhook signatures to ensure requests are from Vellosim:
 
 <CodeGroup>
 
@@ -77,15 +587,15 @@ function verifyWebhookSignature(payload, signature, secret) {
 }
 
 // Express.js example
-app.post('/webhooks/vellosim', express.raw({ type: 'application/json' }), (req, res) => {
-  const signature = req.headers['x-vellosim-signature'];
+app.post('/webhooks/vellosim', express.json(), (req, res) => {
+  const signature = req.headers['x-webhook-signature'];
   const webhookSecret = process.env.VELLOSIM_WEBHOOK_SECRET;
   
   if (!verifyWebhookSignature(req.body, signature, webhookSecret)) {
     return res.status(401).send('Invalid signature');
   }
   
-  const event = JSON.parse(req.body);
+  const event = req.body;
   
   // Process the webhook event
   handleWebhookEvent(event);
@@ -105,7 +615,7 @@ app = Flask(__name__)
 def verify_webhook_signature(payload, signature, secret):
     expected_signature = hmac.new(
         secret.encode(),
-        payload.encode(),
+        json.dumps(payload).encode(),
         hashlib.sha256
     ).hexdigest()
     
@@ -113,18 +623,16 @@ def verify_webhook_signature(payload, signature, secret):
 
 @app.route('/webhooks/vellosim', methods=['POST'])
 def handle_webhook():
-    signature = request.headers.get('X-Vellosim-Signature')
+    signature = request.headers.get('X-Webhook-Signature')
     webhook_secret = os.getenv('VELLOSIM_WEBHOOK_SECRET')
     
-    payload = request.get_data(as_text=True)
+    payload = request.get_json()
     
     if not verify_webhook_signature(payload, signature, webhook_secret):
         abort(401, 'Invalid signature')
     
-    event = json.loads(payload)
-    
     # Process the webhook event
-    handle_webhook_event(event)
+    handle_webhook_event(payload)
     
     return '', 200
 ```
@@ -132,13 +640,13 @@ def handle_webhook():
 ```php PHP
 <?php
 function verifyWebhookSignature($payload, $signature, $secret) {
-    $expectedSignature = hash_hmac('sha256', $payload, $secret);
+    $expectedSignature = hash_hmac('sha256', json_encode($payload), $secret);
     return hash_equals($signature, $expectedSignature);
 }
 
 // Process webhook
-$payload = file_get_contents('php://input');
-$signature = $_SERVER['HTTP_X_VELLOSIM_SIGNATURE'];
+$payload = json_decode(file_get_contents('php://input'), true);
+$signature = $_SERVER['HTTP_X_WEBHOOK_SIGNATURE'];
 $webhookSecret = getenv('VELLOSIM_WEBHOOK_SECRET');
 
 if (!verifyWebhookSignature($payload, $signature, $webhookSecret)) {
@@ -146,16 +654,57 @@ if (!verifyWebhookSignature($payload, $signature, $webhookSecret)) {
     exit('Invalid signature');
 }
 
-$event = json_decode($payload, true);
-
 // Process the webhook event
-handleWebhookEvent($event);
+handleWebhookEvent($payload);
 
 http_response_code(200);
 ?>
 ```
 
+```go Go
+package main
+
+import (
+    "crypto/hmac"
+    "crypto/sha256"
+    "encoding/hex"
+    "encoding/json"
+    "io"
+    "net/http"
+    "os"
+)
+
+func verifyWebhookSignature(payload []byte, signature, secret string) bool {
+    mac := hmac.New(sha256.New, []byte(secret))
+    mac.Write(payload)
+    expectedSignature := hex.EncodeToString(mac.Sum(nil))
+    return hmac.Equal([]byte(signature), []byte(expectedSignature))
+}
+
+func webhookHandler(w http.ResponseWriter, r *http.Request) {
+    signature := r.Header.Get("X-Webhook-Signature")
+    webhookSecret := os.Getenv("VELLOSIM_WEBHOOK_SECRET")
+    
+    body, _ := io.ReadAll(r.Body)
+    
+    if !verifyWebhookSignature(body, signature, webhookSecret) {
+        http.Error(w, "Invalid signature", http.StatusUnauthorized)
+        return
+    }
+    
+    var event map[string]interface{}
+    json.Unmarshal(body, &event)
+    
+    // Process the webhook event
+    handleWebhookEvent(event)
+    
+    w.WriteHeader(http.StatusOK)
+}
+```
+
 </CodeGroup>
+
+---
 
 ## Handling Webhook Events
 
@@ -163,64 +712,102 @@ Process different event types appropriately:
 
 ```javascript
 function handleWebhookEvent(event) {
+  // Store event ID to prevent duplicate processing
+  if (isEventProcessed(event.id)) {
+    console.log(`Event ${event.id} already processed`);
+    return;
+  }
+  
   switch (event.event) {
-    case 'order.created':
-      handleOrderCreated(event.data);
+    case 'esim.created':
+      handleEsimCreated(event.data);
       break;
       
-    case 'order.activated':
-      handleOrderActivated(event.data);
+    case 'esim.activated':
+      handleEsimActivated(event.data, event.previousStatus);
       break;
       
-    case 'order.completed':
-      handleOrderCompleted(event.data);
+    case 'esim.data_updated':
+      handleDataUpdated(event.data, event.changes);
       break;
       
-    case 'order.failed':
-      handleOrderFailed(event.data);
+    case 'esim.usage_updated':
+      handleUsageUpdated(event.data, event.changes);
       break;
       
-    case 'order.refunded':
-      handleOrderRefunded(event.data);
+    case 'esim.suspended':
+      handleEsimSuspended(event.data, event.previousStatus);
       break;
       
-    case 'order.expired':
-      handleOrderExpired(event.data);
+    case 'esim.expired':
+      handleEsimExpired(event.data);
+      break;
+      
+    case 'esim.status_changed':
+      handleStatusChanged(event.data, event.previousStatus, event.newStatus);
+      break;
+      
+    case 'esim.requeried':
+      handleEsimRequeried(event.data);
       break;
       
     default:
       console.log(`Unhandled event type: ${event.event}`);
   }
+  
+  // Mark event as processed
+  markEventProcessed(event.id);
 }
 
-function handleOrderCreated(data) {
-  // Update database with order information
-  console.log(`New order created: ${data.orderId}`);
+function handleEsimCreated(data) {
+  // Update database with eSIM details
+  console.log(`New eSIM created: ${data.transactionId}`);
   
-  // Send confirmation email to customer
-  sendOrderConfirmation(data.customerEmail, data);
+  // Send confirmation email with QR code
+  sendEsimConfirmation(data.customerEmail, {
+    qrCodeUrl: data.qrCodeUrl,
+    shortUrl: data.shortUrl,
+    ac: data.ac,
+    packageDetails: data.packageDetails
+  });
   
-  // Update order status in your system
-  updateOrderStatus(data.orderId, 'pending');
+  // Update order status
+  updateOrderStatus(data.id, 'CREATED');
 }
 
-function handleOrderActivated(data) {
+function handleEsimActivated(data, previousStatus) {
   // Notify customer that eSIM is active
-  console.log(`eSIM activated: ${data.esimId}`);
-  sendActivationNotification(data.customerEmail, data);
-  updateOrderStatus(data.orderId, 'active');
+  console.log(`eSIM activated: ${data.iccid}`);
+  
+  sendActivationNotification(data.customerEmail, {
+    iccid: data.iccid,
+    activateTime: data.activateTime,
+    expiredTime: data.expiredTime
+  });
+  
+  // Update status and start tracking
+  updateOrderStatus(data.id, 'ACTIVATED');
+  startUsageTracking(data.id);
 }
 
-function handleOrderCompleted(data) {
-  // Mark order as completed
-  console.log(`Order completed: ${data.orderId}`);
-  updateOrderStatus(data.orderId, 'completed');
+function handleDataUpdated(data, changes) {
+  // Update usage in database
+  updateUsageStats(data.id, {
+    dataUsage: data.dataUsage,
+    data_usage_remain: data.data_usage_remain
+  });
+  
+  // Check for low data threshold (e.g., 10% remaining)
+  const usagePercent = (data.dataUsage / data.totalData) * 100;
+  if (usagePercent >= 90 && usagePercent < 100) {
+    sendLowDataAlert(data.customerEmail, data);
+  }
 }
 ```
 
-## Webhook Response
+---
 
-Your endpoint should respond quickly to avoid timeouts:
+## Webhook Response Best Practices
 
 <AccordionGroup>
   <Accordion title="Return 200 Status Code" icon="check">
@@ -231,20 +818,48 @@ Your endpoint should respond quickly to avoid timeouts:
     Your endpoint should respond within 5 seconds. For longer processing, queue the webhook for async processing.
   </Accordion>
 
-  <Accordion title="Handle Duplicates" icon="copy">
+  <Accordion title="Handle Duplicates (Idempotency)" icon="copy">
     Webhooks may be sent multiple times. Use the event ID to prevent duplicate processing.
+  </Accordion>
+
+  <Accordion title="Verify Signatures" icon="shield">
+    Always verify webhook signatures to ensure authenticity and prevent spoofing.
   </Accordion>
 </AccordionGroup>
 
-## Example: Async Processing
+---
+
+## Error Handling & Retry Logic
+
+### Retry Schedule
+
+Failed webhooks are retried with exponential backoff:
+- **Attempt 1**: Immediate
+- **Attempt 2**: 1 minute later
+- **Attempt 3**: 5 minutes later
+- **Attempt 4**: 15 minutes later
+- **Attempt 5**: 1 hour later
+- **Attempt 6**: 2 hours later
+
+**Maximum**: 5 retries (6 total attempts)
+
+### HTTP Status Codes
+
+- **2xx**: Success, no retry
+- **410 Gone**: Endpoint invalid, stop retrying
+- **All others**: Retry with backoff
+
+---
+
+## Async Processing Example
 
 ```javascript
-const queue = require('bull'); // or any queue library
-const webhookQueue = new queue('webhook-processing');
+const Queue = require('bull');
+const webhookQueue = new Queue('webhook-processing');
 
 // Webhook endpoint - responds immediately
 app.post('/webhooks/vellosim', express.json(), async (req, res) => {
-  const signature = req.headers['x-vellosim-signature'];
+  const signature = req.headers['x-webhook-signature'];
   
   if (!verifyWebhookSignature(req.body, signature, WEBHOOK_SECRET)) {
     return res.status(401).send('Invalid signature');
@@ -267,11 +882,13 @@ webhookQueue.process(async (job) => {
 });
 ```
 
+---
+
 ## Testing Webhooks
 
 ### Local Testing with ngrok
 
-Use ngrok to expose your local server for webhook testing:
+Expose your local server for webhook testing:
 
 ```bash
 # Start your local server
@@ -281,80 +898,46 @@ npm start
 ngrok http 3000
 
 # Use the ngrok URL as your webhook endpoint
-# Example: https://abc123.ngrok.io/webhooks/vellosim
+# Example: https://abc123.ngrok-free.app/webhooks/vellosim
 ```
 
-### Manual Testing
+### Test with webhook.site
 
-You can manually test your webhook endpoint using cURL:
+Use [webhook.site](https://webhook.site) to inspect webhook payloads:
 
-```bash
-curl -X POST "https://your-domain.com/webhooks/vellosim" \
-  -H "Content-Type: application/json" \
-  -H "X-Vellosim-Signature: test_signature" \
-  -d '{
-    "event": "order.created",
-    "timestamp": "2024-11-10T10:30:00Z",
-    "data": {
-      "orderId": "test_order_123",
-      "esimId": "test_esim_456",
-      "status": "pending"
-    }
-  }'
-```
+1. Go to webhook.site
+2. Copy the unique URL
+3. Configure it as your webhook endpoint
+4. Trigger events and inspect payloads in real-time
 
-## Webhook Retry Logic
+---
 
-If your endpoint fails to respond, Vellosim will retry:
+## Integration Checklist
 
-- **Retry attempts**: Up to 3 retries
-- **Retry schedule**: 1 minute, 5 minutes, 30 minutes
-- **Timeout**: 5 seconds per attempt
+✅ Webhook URL configured in API key settings  
+✅ Signature verification implemented  
+✅ Idempotency handling (using `event.id`)  
+✅ Async processing (return 200 OK immediately)  
+✅ Error logging and monitoring  
+✅ Retry handling on your side (optional)  
+✅ Test with ngrok/webhook.site  
+✅ Monitor webhook delivery logs  
 
-## Best Practices
-
-<AccordionGroup>
-  <Accordion title="Idempotency" icon="fingerprint">
-    Store event IDs and check for duplicates before processing webhooks.
-  </Accordion>
-
-  <Accordion title="Verify Signatures" icon="shield">
-    Always verify webhook signatures to ensure authenticity and prevent spoofing.
-  </Accordion>
-
-  <Accordion title="Use HTTPS" icon="lock">
-    Only use HTTPS endpoints for webhooks to ensure secure data transmission.
-  </Accordion>
-
-  <Accordion title="Process Asynchronously" icon="list-check">
-    Queue webhooks for async processing to respond quickly and avoid timeouts.
-  </Accordion>
-
-  <Accordion title="Log All Events" icon="file-lines">
-    Log all webhook events for debugging and audit purposes.
-  </Accordion>
-
-  <Accordion title="Monitor Failures" icon="chart-line">
-    Set up monitoring to track webhook delivery failures and investigate issues.
-  </Accordion>
-</AccordionGroup>
-
-## Webhook Dashboard
-
-Monitor webhook deliveries in your Vellosim dashboard:
-
-- View delivery history
-- See failed deliveries and error messages
-- Retry failed webhooks manually
-- Test webhook endpoints
+---
 
 ## Next Steps
 
 <CardGroup cols={2}>
-  <Card title="Website Integration" icon="browser" href="/guides/website-integration">
-    Integrate Vellosim into your website
+  <Card title="Purchase eSIM" icon="shopping-cart" href="/guides/purchase-esim">
+    Learn how to purchase eSIMs
   </Card>
-  <Card title="Mobile App Integration" icon="mobile" href="/guides/mobile-app-integration">
-    Add eSIM to your mobile app
+  <Card title="Fetch eSIM Details" icon="circle-info" href="/guides/fetch-esim">
+    Retrieve complete eSIM information
+  </Card>
+  <Card title="Top-up eSIM" icon="plus" href="/guides/topup-esim">
+    Add data to existing eSIMs
+  </Card>
+  <Card title="List All eSIMs" icon="list" href="/guides/fetch-all-esims">
+    Fetch all user eSIMs with pagination
   </Card>
 </CardGroup>

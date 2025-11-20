@@ -48,10 +48,10 @@ When generating your API key, you'll need to provide:
 
 ## Using Your API Key
 
-Include your API key in the `Authorization` header of every request using the Bearer token format:
+Include your API key in the `X-API-Key` header of every request using the API Key format:
 
 ```bash
-Authorization: Bearer YOUR_API_KEY
+X-API-Key: YOUR_API_KEY
 ```
 
 ## Example Requests
@@ -60,7 +60,7 @@ Authorization: Bearer YOUR_API_KEY
 
 ```bash cURL
 curl -X GET "https://api.vellosim.com/api/esim/regions" \
-  -H "Authorization: Bearer YOUR_API_KEY" \
+  -H "X-API-Key: YOUR_API_KEY" \
   -H "Content-Type: application/json"
 ```
 
@@ -68,7 +68,7 @@ curl -X GET "https://api.vellosim.com/api/esim/regions" \
 const response = await fetch('https://api.vellosim.com/api/esim/regions', {
   method: 'GET',
   headers: {
-    'Authorization': `Bearer ${YOUR_API_KEY}`,
+    'X-API-Key': `YOUR_API_KEY}`,
     'Content-Type': 'application/json'
   }
 });
@@ -80,7 +80,7 @@ const data = await response.json();
 import requests
 
 headers = {
-    'Authorization': f'Bearer {YOUR_API_KEY}',
+    'X-API-Key': f' {YOUR_API_KEY}',
     'Content-Type': 'application/json'
 }
 
@@ -98,7 +98,7 @@ $apiKey = 'YOUR_API_KEY';
 
 $ch = curl_init('https://api.vellosim.com/api/esim/regions');
 curl_setopt($ch, CURLOPT_HTTPHEADER, [
-    'Authorization: Bearer ' . $apiKey,
+    'X-API-Key: ' . $apiKey,
     'Content-Type: application/json'
 ]);
 curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);

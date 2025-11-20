@@ -21,7 +21,7 @@ async function purchaseEsim(packageCode) {
   const purchaseResponse = await fetch('https://api.vellosim.com/api/esim/buy', {
     method: 'POST',
     headers: {
-      'Authorization': `Bearer ${API_KEY}`,
+      'X-API-Key': `API_KEY}`,
       'Content-Type': 'application/json'
     },
     body: JSON.stringify({
@@ -42,7 +42,7 @@ async function purchaseEsim(packageCode) {
     `https://api.vellosim.com/api/esim/${purchaseData.transactionId}`,
     {
       headers: {
-        'Authorization': `Bearer ${API_KEY}`
+        'X-API-Key': `API_KEY}`
       }
     }
   );
@@ -70,7 +70,7 @@ import requests
 def purchase_esim(package_code):
     """Purchase eSIM and fetch complete details"""
     headers = {
-        'Authorization': f'Bearer {API_KEY}',
+        'X-API-Key': f' {API_KEY}',
         'Content-Type': 'application/json'
     }
     
@@ -121,7 +121,7 @@ print(f"QR Code: {result['qrCodeUrl']}")
 function purchaseEsim($packageCode) {
     $apiKey = 'YOUR_API_KEY';
     $headers = [
-        'Authorization: Bearer ' . $apiKey,
+        'X-API-Key: ' . $apiKey,
         'Content-Type: application/json'
     ];
     
@@ -225,7 +225,7 @@ func purchaseEsim(apiKey, packageCode string) (*EsimDetails, error) {
     client := &http.Client{}
     req, _ := http.NewRequest("POST", "https://api.vellosim.com/api/esim/buy", 
         bytes.NewBuffer(jsonData))
-    req.Header.Set("Authorization", "Bearer "+apiKey)
+    req.Header.Set("X-API-Key", apiKey)
     req.Header.Set("Content-Type", "application/json")
     
     resp, err := client.Do(req)
@@ -246,7 +246,7 @@ func purchaseEsim(apiKey, packageCode string) (*EsimDetails, error) {
     // Step 2: Fetch complete eSIM details
     req2, _ := http.NewRequest("GET", 
         "https://api.vellosim.com/api/esim/"+purchaseResult.TransactionID, nil)
-    req2.Header.Set("Authorization", "Bearer "+apiKey)
+    req2.Header.Set("X-API-Key", apiKey)
     
     resp2, err := client.Do(req2)
     if err != nil {

@@ -16,7 +16,17 @@ This endpoint returns the current balance in your Vellosim wallet. Your wallet b
 
 ## Authentication
 
-This endpoint requires authentication using a Bearer token.
+This endpoint requires authentication using your API key in the `X-API-Key` header.
+
+**Production:**
+```
+X-API-Key: vls_live_YOUR_API_KEY
+```
+
+**Testing/Sandbox:**
+```
+X-API-Key: vls_test_YOUR_API_KEY
+```
 
 ## Request
 
@@ -24,7 +34,7 @@ This endpoint requires authentication using a Bearer token.
 
 | Header | Value | Required |
 |--------|-------|----------|
-| Authorization | Bearer YOUR_API_KEY | Yes |
+| Authorization | YOUR_API_KEY | Yes |
 | Content-Type | application/json | Yes |
 
 ### Parameters
@@ -89,7 +99,7 @@ This endpoint does not require any parameters.
 ```bash cURL
 curl --request GET \
   --url https://api.vellosim.com/api/wallet/balance \
-  --header 'Authorization: Bearer YOUR_API_KEY' \
+  --header 'X-API-Key: YOUR_API_KEY' \
   --header 'Content-Type: application/json'
 ```
 
@@ -98,7 +108,7 @@ const getBalance = async () => {
   const response = await fetch('https://api.vellosim.com/api/wallet/balance', {
     method: 'GET',
     headers: {
-      'Authorization': `Bearer ${YOUR_API_KEY}`,
+      'X-API-Key': `YOUR_API_KEY}`,
       'Content-Type': 'application/json'
     }
   });
@@ -113,7 +123,7 @@ const getBalance = async () => {
 import requests
 
 headers = {
-    'Authorization': f'Bearer {YOUR_API_KEY}',
+    'X-API-Key': f' {YOUR_API_KEY}',
     'Content-Type': 'application/json'
 }
 
@@ -132,7 +142,7 @@ $apiKey = 'YOUR_API_KEY';
 
 $ch = curl_init('https://api.vellosim.com/api/wallet/balance');
 curl_setopt($ch, CURLOPT_HTTPHEADER, [
-    'Authorization: Bearer ' . $apiKey,
+    'X-API-Key: ' . $apiKey,
     'Content-Type: application/json'
 ]);
 curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);

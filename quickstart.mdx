@@ -35,7 +35,7 @@ Follow these simple steps to integrate Vellosim's eSIM solution into your platfo
 
     ```bash
     curl -X GET "https://api.vellosim.com/api/esim/regions" \
-      -H "Authorization: Bearer YOUR_API_KEY" \
+      -H "X-API-Key: YOUR_API_KEY" \
       -H "Content-Type: application/json"
     ```
 
@@ -47,7 +47,7 @@ Follow these simple steps to integrate Vellosim's eSIM solution into your platfo
 
     ```bash
     curl -X GET "https://api.vellosim.com/api/esim/packages?regionCode=US&regionType=country" \
-      -H "Authorization: Bearer YOUR_API_KEY" \
+      -H "X-API-Key: YOUR_API_KEY" \
       -H "Content-Type: application/json"
     ```
 
@@ -63,7 +63,7 @@ Follow these simple steps to integrate Vellosim's eSIM solution into your platfo
 
     ```bash
     curl -X GET "https://api.vellosim.com/api/wallet/balance" \
-      -H "Authorization: Bearer YOUR_API_KEY" \
+      -H "X-API-Key: YOUR_API_KEY" \
       -H "Content-Type: application/json"
     ```
 
@@ -116,19 +116,19 @@ Here's a quick example of a complete eSIM purchase flow:
 ```javascript
 // 1. Get available regions
 const regions = await fetch('https://api.vellosim.com/api/esim/regions', {
-  headers: { 'Authorization': `Bearer ${API_KEY}` }
+  headers: { 'X-API-Key': `API_KEY}` }
 });
 
 // 2. Get packages for a specific region
 const packages = await fetch('https://api.vellosim.com/api/esim/packages?regionCode=US&regionType=country', {
-  headers: { 'Authorization': `Bearer ${API_KEY}` }
+  headers: { 'X-API-Key': `API_KEY}` }
 });
 
 // 3. Purchase an eSIM
 const purchase = await fetch('https://api.vellosim.com/api/esim/buy', {
   method: 'POST',
   headers: {
-    'Authorization': `Bearer ${API_KEY}`,
+    'X-API-Key': `API_KEY}`,
     'Content-Type': 'application/json'
   },
   body: JSON.stringify({
