@@ -1,0 +1,376 @@
+---
+title: "Top-Up eSIM"
+api: "POST /api/esim/buy"
+description: "Add more data to an existing eSIM"
+---
+
+## Endpoint
+
+```
+POST /api/esim/buy
+```
+
+## Description
+
+Top up an existing eSIM with additional data. This uses the same purchase endpoint but with `packageType: 'TOPUP'` and the `esimId` of the eSIM you want to refill.
+
+## Top-Up Flow
+
+The complete top-up process follows these steps:
+
+<Steps>
+  <Step title="Get your eSIMs">
+    Call `GET /api/esim/my-esims` to find the eSIM you want to top up. Note down its `id` and `packageCode`.
+  </Step>
+  <Step title="Fetch top-up packages">
+    Call `GET /api/esim/packages?type=TOPUP&regionCode={regionCode}&packageCode={packageCode}` to see available top-up options.
+  </Step>
+  <Step title="Get exchange rate (optional)">
+    Call `GET /api/settings/exchange-rate` to show the NGN equivalent price to your users.
+  </Step>
+  <Step title="Purchase the top-up">
+    Call `POST /api/esim/buy` with `packageType: 'TOPUP'`, the top-up `packageCode`, and the `esimId`.
+  </Step>
+  <Step title="Verify the top-up">
+    Call `GET /api/esim/{id}` to confirm the updated data balance on the eSIM.
+  </Step>
+</Steps>
+
+## Authentication
+
+<ParamField header="X-API-Key" type="string" required>
+  API Key for authentication
+  ```
+  YOUR_API_KEY
+  ```
+</ParamField>
+
+## Request Body
+
+<ParamField body="packageCode" type="string" required>
+  The top-up package code from the [Get Top-Up Packages](/api-reference/esim/topup-packages) endpoint.
+</ParamField>
+
+<ParamField body="paymentMethod" type="string" required>
+  Payment method:
+  - `WALLET` - Pay with wallet balance (instant)
+  - `CARD` - Pay with credit/debit card
+  - `BANK_TRANSFER` - Pay via bank transfer
+</ParamField>
+
+<ParamField body="packageType" type="string" required>
+  Must be `TOPUP` for top-up purchases.
+</ParamField>
+
+<ParamField body="esimId" type="string" required>
+  The ID of the existing eSIM to top up. Get this from `GET /api/esim/my-esims`.
+</ParamField>
+
+## Response
+
+<ResponseField name="transactionId" type="string">
+  Unique transaction ID for this top-up
+</ResponseField>
+
+<ResponseField name="status" type="string">
+  Order status: `SUCCESS` (wallet payment) or `PENDING` (card/bank transfer)
+</ResponseField>
+
+<ResponseField name="package" type="object">
+  Top-up package details
+</ResponseField>
+
+<ResponseField name="esimDetails" type="object">
+  Updated eSIM details (only when `status` is `SUCCESS`)
+  <Expandable title="eSIM Details">
+    <ResponseField name="iccid" type="string">
+      ICCID number
+    </ResponseField>
+    <ResponseField name="totalVolume" type="number">
+      New total data volume after top-up (bytes)
+    </ResponseField>
+    <ResponseField name="dataRemaining" type="number">
+      Remaining data after top-up (bytes)
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Example Request
+
+<CodeGroup>
+
+```bash cURL
+curl -X POST https://api.vellosim.com/api/esim/buy \
+  -H "X-API-Key: YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "packageCode": "CKH384_TOPUP_3GB",
+    "paymentMethod": "WALLET",
+    "packageType": "TOPUP",
+    "esimId": "69125f9f56d7f09edabbaf23"
+  }'
+```
+
+```javascript JavaScript
+async function topUpEsim(esimId, topupPackageCode) {
+  const response = await fetch('https://api.vellosim.com/api/esim/buy', {
+    method: 'POST',
+    headers: {
+      'X-API-Key': 'YOUR_API_KEY',
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      packageCode: topupPackageCode,
+      paymentMethod: 'WALLET',
+      packageType: 'TOPUP',
+      esimId: esimId
+    })
+  });
+
+  const data = await response.json();
+
+  if (data.status !== 'SUCCESS') {
+    throw new Error(data.message || 'Top-up failed');
+  }
+
+  return data;
+}
+
+// Usage
+const result = await topUpEsim('69125f9f56d7f09edabbaf23', 'CKH384_TOPUP_3GB');
+console.log(`Top-up successful! Transaction: ${result.transactionId}`);
+```
+
+```python Python
+import requests
+
+def topup_esim(esim_id, topup_package_code):
+    """Top up an existing eSIM with additional data"""
+    headers = {
+        'X-API-Key': 'YOUR_API_KEY',
+        'Content-Type': 'application/json'
+    }
+
+    payload = {
+        'packageCode': topup_package_code,
+        'paymentMethod': 'WALLET',
+        'packageType': 'TOPUP',
+        'esimId': esim_id
+    }
+
+    response = requests.post(
+        'https://api.vellosim.com/api/esim/buy',
+        headers=headers,
+        json=payload
+    )
+
+    data = response.json()
+
+    if data.get('status') != 'SUCCESS':
+        raise Exception(data.get('message', 'Top-up failed'))
+
+    return data
+
+# Usage
+result = topup_esim('69125f9f56d7f09edabbaf23', 'CKH384_TOPUP_3GB')
+print(f"Top-up successful! Transaction: {result['transactionId']}")
+```
+
+```php PHP
+<?php
+function topUpEsim($esimId, $topupPackageCode) {
+    $apiKey = 'YOUR_API_KEY';
+
+    $payload = [
+        'packageCode' => $topupPackageCode,
+        'paymentMethod' => 'WALLET',
+        'packageType' => 'TOPUP',
+        'esimId' => $esimId
+    ];
+
+    $ch = curl_init('https://api.vellosim.com/api/esim/buy');
+    curl_setopt($ch, CURLOPT_POST, true);
+    curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($payload));
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_HTTPHEADER, [
+        'X-API-Key: ' . $apiKey,
+        'Content-Type: application/json'
+    ]);
+
+    $response = curl_exec($ch);
+    $data = json_decode($response, true);
+    curl_close($ch);
+
+    if ($data['status'] !== 'SUCCESS') {
+        throw new Exception($data['message'] ?? 'Top-up failed');
+    }
+
+    return $data;
+}
+
+// Usage
+$result = topUpEsim('69125f9f56d7f09edabbaf23', 'CKH384_TOPUP_3GB');
+echo "Top-up successful! Transaction: " . $result['transactionId'] . "\n";
+?>
+```
+
+</CodeGroup>
+
+## Example Response
+
+<ResponseExample>
+
+```json 200 - Success (Wallet Payment)
+{
+  "transactionId": "esim_1697888400_12345",
+  "status": "SUCCESS",
+  "message": "Top-up applied successfully",
+  "package": {
+    "packageCode": "CKH384_TOPUP_3GB",
+    "name": "USA Top-Up 3GB - 30 Days",
+    "price": 6.90,
+    "currencyCode": "USD",
+    "volume": 3221225472,
+    "duration": 30
+  },
+  "esimDetails": {
+    "iccid": "8901234567890123456",
+    "totalVolume": 8589934592,
+    "dataRemaining": 6442450944
+  }
+}
+```
+
+```json 400 - Insufficient Balance
+{
+  "success": false,
+  "message": "Insufficient wallet balance",
+  "statusCode": 400
+}
+```
+
+```json 400 - Missing esimId
+{
+  "success": false,
+  "message": "esimId is required for TOPUP package type",
+  "statusCode": 400
+}
+```
+
+```json 404 - eSIM Not Found
+{
+  "success": false,
+  "message": "eSIM not found or does not belong to your account",
+  "statusCode": 404
+}
+```
+
+</ResponseExample>
+
+## Complete Top-Up Example
+
+Here's a full end-to-end example showing the entire top-up flow:
+
+```javascript
+async function completeTopUpFlow(esimId, regionCode, originalPackageCode) {
+  const headers = {
+    'X-API-Key': 'YOUR_API_KEY',
+    'Content-Type': 'application/json'
+  };
+
+  // Step 1: Get available top-up packages
+  const topupParams = new URLSearchParams({
+    type: 'TOPUP',
+    regionCode,
+    packageCode: originalPackageCode
+  });
+
+  const topupsRes = await fetch(
+    `https://api.vellosim.com/api/esim/packages?${topupParams}`,
+    { headers }
+  );
+  const topups = await topupsRes.json();
+
+  if (topups.length === 0) {
+    console.log('No top-up options available for this eSIM');
+    return null;
+  }
+
+  console.log(`${topups.length} top-up options available:`);
+  topups.forEach((pkg, i) => {
+    const gb = (pkg.volume / 1073741824).toFixed(1);
+    console.log(`  ${i + 1}. ${pkg.name}: ${gb}GB — $${pkg.price}`);
+  });
+
+  // Step 2: Get exchange rate for NGN display
+  const rateRes = await fetch(
+    'https://api.vellosim.com/api/settings/exchange-rate',
+    { headers }
+  );
+  const { data: rateData } = await rateRes.json();
+
+  // Step 3: Select a top-up and show price
+  const selected = topups[0]; // Pick first option
+  const ngnPrice = Math.round(selected.price * rateData.rate * 100) / 100;
+  console.log(`\nSelected: ${selected.name} — $${selected.price} (≈ ₦${ngnPrice.toLocaleString()})`);
+
+  // Step 4: Purchase the top-up
+  const purchaseRes = await fetch('https://api.vellosim.com/api/esim/buy', {
+    method: 'POST',
+    headers,
+    body: JSON.stringify({
+      packageCode: selected.packageCode,
+      paymentMethod: 'WALLET',
+      packageType: 'TOPUP',
+      esimId
+    })
+  });
+
+  const result = await purchaseRes.json();
+
+  if (result.status === 'SUCCESS') {
+    console.log(`✅ Top-up applied! Transaction: ${result.transactionId}`);
+  } else {
+    console.log(`❌ Top-up failed: ${result.message}`);
+  }
+
+  return result;
+}
+
+// Usage
+await completeTopUpFlow(
+  '69125f9f56d7f09edabbaf23',  // esimId
+  'US',                          // regionCode
+  'CKH384'                       // original packageCode
+);
+```
+
+## Important Notes
+
+<Warning>
+  **Top-up requirements:**
+  - The eSIM must be **active** — you cannot top up expired or cancelled eSIMs
+  - The top-up `packageCode` must be compatible with the original eSIM package
+  - You must have sufficient wallet balance (for `WALLET` payment method)
+</Warning>
+
+<Note>
+  Not all packages support top-ups. If `GET /api/esim/packages?type=TOPUP` returns an empty array, the eSIM does not support data refills. The user would need to purchase a new eSIM instead.
+</Note>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Get Top-Up Packages" icon="list" href="/api-reference/esim/topup-packages">
+    Browse available top-up options
+  </Card>
+  <Card title="My eSIMs" icon="sim-card" href="/api-reference/orders/my-esims">
+    Get your existing eSIMs
+  </Card>
+  <Card title="Check Balance" icon="wallet" href="/api-reference/wallet/balance">
+    Check wallet balance before top-up
+  </Card>
+  <Card title="Top-Up Guide" icon="book" href="/guides/topup-esim">
+    Full integration guide
+  </Card>
+</CardGroup>

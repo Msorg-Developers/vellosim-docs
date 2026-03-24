@@ -1,0 +1,272 @@
+---
+title: "Get Top-Up Packages"
+api: "GET /api/esim/packages?type=TOPUP"
+description: "Get available data top-up packages for an existing eSIM"
+---
+
+## Endpoint
+
+```
+GET /api/esim/packages?type=TOPUP&regionCode={regionCode}&packageCode={packageCode}
+```
+
+## Description
+
+Returns available top-up (data refill) packages for an existing eSIM. Top-up packages let you add more data to an active eSIM without creating a new one.
+
+You need to provide the **region code** and the **original package code** of the eSIM you want to top up.
+
+## Authentication
+
+<ParamField header="X-API-Key" type="string" required>
+  API Key for authentication
+  ```
+  YOUR_API_KEY
+  ```
+</ParamField>
+
+## Query Parameters
+
+<ParamField query="type" type="string" required>
+  Must be `TOPUP` to fetch top-up packages.
+</ParamField>
+
+<ParamField query="regionCode" type="string" required>
+  Region code of the existing eSIM (e.g., `US`, `GB`, `EU`).
+</ParamField>
+
+<ParamField query="packageCode" type="string" required>
+  The original package code of the eSIM to top up (e.g., `CKH384`).
+  
+  You can get this from the eSIM order details (`GET /api/esim/my-esims` or `GET /api/esim/:id`).
+</ParamField>
+
+## Response
+
+Returns an array of top-up packages with pricing.
+
+<ResponseField name="packageCode" type="string">
+  Top-up package identifier. Use this code when purchasing the top-up.
+</ResponseField>
+
+<ResponseField name="name" type="string">
+  Top-up package display name
+</ResponseField>
+
+<ResponseField name="price" type="number">
+  Price in USD (with markup applied)
+</ResponseField>
+
+<ResponseField name="currencyCode" type="string">
+  Currency code (always `USD`)
+</ResponseField>
+
+<ResponseField name="volume" type="number">
+  Additional data volume in bytes. Divide by `1073741824` to get GB.
+</ResponseField>
+
+<ResponseField name="duration" type="number">
+  Additional validity period (number of units)
+</ResponseField>
+
+<ResponseField name="durationUnit" type="string">
+  Duration unit — `DAY`, `HOUR`, or `MONTH`
+</ResponseField>
+
+<ResponseField name="speed" type="string">
+  Network speed (e.g., `3G/4G/5G`)
+</ResponseField>
+
+## Example Request
+
+<CodeGroup>
+
+```bash cURL
+curl -X GET 'https://api.vellosim.com/api/esim/packages?type=TOPUP&regionCode=US&packageCode=CKH384' \
+  -H "X-API-Key: YOUR_API_KEY" \
+  -H "Content-Type: application/json"
+```
+
+```javascript JavaScript
+async function getTopUpPackages(regionCode, packageCode) {
+  const params = new URLSearchParams({
+    type: 'TOPUP',
+    regionCode,
+    packageCode
+  });
+
+  const response = await fetch(
+    `https://api.vellosim.com/api/esim/packages?${params}`,
+    {
+      method: 'GET',
+      headers: {
+        'X-API-Key': 'YOUR_API_KEY',
+        'Content-Type': 'application/json'
+      }
+    }
+  );
+
+  return await response.json();
+}
+
+// Usage — get top-up options for an existing US eSIM
+const topups = await getTopUpPackages('US', 'CKH384');
+console.log(`Found ${topups.length} top-up options`);
+
+topups.forEach(pkg => {
+  const dataGB = (pkg.volume / 1073741824).toFixed(1);
+  console.log(`${pkg.name}: ${dataGB}GB — $${pkg.price} (${pkg.duration} ${pkg.durationUnit}s)`);
+});
+```
+
+```python Python
+import requests
+
+def get_topup_packages(region_code, package_code):
+    """Get available top-up packages for an existing eSIM"""
+    headers = {
+        'X-API-Key': 'YOUR_API_KEY',
+        'Content-Type': 'application/json'
+    }
+
+    params = {
+        'type': 'TOPUP',
+        'regionCode': region_code,
+        'packageCode': package_code
+    }
+
+    response = requests.get(
+        'https://api.vellosim.com/api/esim/packages',
+        headers=headers,
+        params=params
+    )
+
+    return response.json()
+
+# Usage
+topups = get_topup_packages('US', 'CKH384')
+print(f"Found {len(topups)} top-up options")
+
+for pkg in topups:
+    data_gb = pkg['volume'] / (1024 ** 3)
+    print(f"{pkg['name']}: {data_gb:.1f}GB — ${pkg['price']}")
+```
+
+```php PHP
+<?php
+function getTopUpPackages($regionCode, $packageCode) {
+    $apiKey = 'YOUR_API_KEY';
+
+    $query = http_build_query([
+        'type' => 'TOPUP',
+        'regionCode' => $regionCode,
+        'packageCode' => $packageCode
+    ]);
+
+    $ch = curl_init("https://api.vellosim.com/api/esim/packages?{$query}");
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_HTTPHEADER, [
+        'X-API-Key: ' . $apiKey,
+        'Content-Type: application/json'
+    ]);
+
+    $response = curl_exec($ch);
+    $data = json_decode($response, true);
+    curl_close($ch);
+
+    return $data;
+}
+
+// Usage
+$topups = getTopUpPackages('US', 'CKH384');
+echo "Found " . count($topups) . " top-up options\n";
+
+foreach ($topups as $pkg) {
+    $dataGB = $pkg['volume'] / (1024 ** 3);
+    echo "{$pkg['name']}: {$dataGB}GB — \${$pkg['price']}\n";
+}
+?>
+```
+
+</CodeGroup>
+
+## Example Response
+
+<ResponseExample>
+
+```json 200 - Success
+[
+  {
+    "packageCode": "CKH384_TOPUP_1GB",
+    "name": "USA Top-Up 1GB - 7 Days",
+    "price": 3.45,
+    "currencyCode": "USD",
+    "volume": 1073741824,
+    "duration": 7,
+    "durationUnit": "DAY",
+    "speed": "4G/5G",
+    "description": "1GB data top-up for existing USA eSIM",
+    "locationNetworkList": [
+      {
+        "locationName": "United States",
+        "locationCode": "US",
+        "operatorList": [
+          { "operatorName": "AT&T", "networkType": "4G/LTE" },
+          { "operatorName": "T-Mobile", "networkType": "4G/5G" }
+        ]
+      }
+    ]
+  },
+  {
+    "packageCode": "CKH384_TOPUP_3GB",
+    "name": "USA Top-Up 3GB - 30 Days",
+    "price": 6.90,
+    "currencyCode": "USD",
+    "volume": 3221225472,
+    "duration": 30,
+    "durationUnit": "DAY",
+    "speed": "4G/5G",
+    "description": "3GB data top-up for existing USA eSIM",
+    "locationNetworkList": [
+      {
+        "locationName": "United States",
+        "locationCode": "US",
+        "operatorList": [
+          { "operatorName": "AT&T", "networkType": "4G/LTE" },
+          { "operatorName": "T-Mobile", "networkType": "4G/5G" }
+        ]
+      }
+    ]
+  }
+]
+```
+
+```json 400 - Missing Parameters
+{
+  "success": false,
+  "message": "regionCode and packageCode are required for TOPUP type"
+}
+```
+
+</ResponseExample>
+
+<Note>
+  Not all eSIM packages support top-ups. If no top-up packages are returned, the eSIM does not support data refills.
+</Note>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Top-Up eSIM" icon="arrow-rotate-right" href="/api-reference/purchase/topup">
+    Apply a top-up to your eSIM
+  </Card>
+  <Card title="My eSIMs" icon="sim-card" href="/api-reference/orders/my-esims">
+    Get your existing eSIMs
+  </Card>
+  <Card title="Exchange Rate" icon="dollar-sign" href="/api-reference/settings/exchange-rate">
+    Get USD → NGN rate
+  </Card>
+  <Card title="Integration Guide" icon="book" href="/guides/topup-esim">
+    Full top-up integration guide
+  </Card>
+</CardGroup>

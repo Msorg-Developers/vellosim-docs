@@ -69,13 +69,15 @@
             "pages": [
               "api-reference/esim/regions",
               "api-reference/esim/packages",
-              "api-reference/esim/package-details"
+              "api-reference/esim/package-details",
+              "api-reference/esim/topup-packages"
             ]
           },
           {
             "group": "Purchase",
             "pages": [
-              "api-reference/purchase/buy"
+              "api-reference/purchase/buy",
+              "api-reference/purchase/topup"
             ]
           },
           {
