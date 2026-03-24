@@ -8,6 +8,26 @@
     "dark": "#E5521F"
   },
   "favicon": "https://res.cloudinary.com/dglkxgoei/image/upload/v1763628425/vello-sim-icon_blaq8v.png",
+  "api": {
+    "mdx": {
+      "server": "https://api.vellosim.com",
+      "auth": {
+        "method": "key",
+        "name": "X-API-Key"
+      }
+    },
+    "playground": {
+      "display": "interactive",
+      "proxy": true
+    },
+    "params": {
+      "expanded": "all"
+    },
+    "examples": {
+      "languages": ["curl", "javascript", "python", "php", "go"],
+      "autogenerate": true
+    }
+  },
   "navigation": {
     "tabs": [
       {
