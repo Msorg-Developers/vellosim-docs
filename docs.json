@@ -68,7 +68,8 @@
             "group": "eSIM",
             "pages": [
               "api-reference/esim/regions",
-              "api-reference/esim/packages"
+              "api-reference/esim/packages",
+              "api-reference/esim/package-details"
             ]
           },
           {

@@ -1,0 +1,318 @@
+---
+title: "Get Package Details"
+api: "GET /api/esim/packages/{packageCode}"
+description: "Get detailed information for a specific eSIM package"
+---
+
+## Endpoint
+
+```
+GET /api/esim/packages/{packageCode}
+```
+
+## Description
+
+Returns detailed information for a single eSIM package, including pricing, data volume, duration, network coverage, and supported operators. Use this to display a package detail page or to confirm package info before purchase.
+
+This is a **public endpoint** — authentication is optional. If an API key is provided, pricing will be calculated based on your account type (User or Merchant).
+
+## Authentication
+
+<ParamField header="X-API-Key" type="string" optional>
+  API Key for authentication. When provided, pricing reflects your account type.
+  ```
+  YOUR_API_KEY
+  ```
+</ParamField>
+
+## Path Parameters
+
+<ParamField path="packageCode" type="string" required>
+  The unique package code identifier (e.g., `US_5GB_30D`).
+  
+  You can get package codes from the [Get Packages](/api-reference/esim/packages) endpoint.
+</ParamField>
+
+## Query Parameters
+
+<ParamField query="currency" type="string" optional>
+  Override currency for pricing (e.g., `NGN`, `USD`, `EUR`).
+  
+  If not provided, defaults to USD.
+</ParamField>
+
+## Response
+
+### Success Response (200 OK)
+
+<ResponseField name="packageCode" type="string">
+  Unique package identifier
+</ResponseField>
+
+<ResponseField name="name" type="string">
+  Package display name
+</ResponseField>
+
+<ResponseField name="price" type="number">
+  Package price in USD (with markup applied)
+</ResponseField>
+
+<ResponseField name="currencyCode" type="string">
+  Currency code (always `USD`)
+</ResponseField>
+
+<ResponseField name="volume" type="number">
+  Data volume in bytes. Divide by `1073741824` (1024³) to convert to GB.
+</ResponseField>
+
+<ResponseField name="duration" type="number">
+  Validity period (number of units)
+</ResponseField>
+
+<ResponseField name="durationUnit" type="string">
+  Duration unit — `DAY`, `HOUR`, or `MONTH`
+</ResponseField>
+
+<ResponseField name="speed" type="string">
+  Network speed (e.g., `3G/4G/5G`)
+</ResponseField>
+
+<ResponseField name="description" type="string">
+  Package description
+</ResponseField>
+
+<ResponseField name="locationNetworkList" type="array">
+  List of covered locations and their network operators
+  <Expandable title="LocationNetwork Object">
+    <ResponseField name="locationName" type="string">
+      Country or region name
+    </ResponseField>
+    <ResponseField name="locationLogo" type="string">
+      URL to location flag/logo
+    </ResponseField>
+    <ResponseField name="locationCode" type="string">
+      Location code (e.g., `US`, `GB`)
+    </ResponseField>
+    <ResponseField name="operatorList" type="array">
+      Available network operators
+      <Expandable title="Operator Object">
+        <ResponseField name="operatorName" type="string">
+          Operator name (e.g., `AT&T`, `T-Mobile`)
+        </ResponseField>
+        <ResponseField name="networkType" type="string">
+          Network type (e.g., `4G/LTE`)
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Example Request
+
+<CodeGroup>
+
+```bash cURL
+curl -X GET 'https://api.vellosim.com/api/esim/packages/US_5GB_30D' \
+  -H "X-API-Key: YOUR_API_KEY" \
+  -H "Content-Type: application/json"
+```
+
+```javascript JavaScript
+async function getPackageDetails(packageCode) {
+  const response = await fetch(
+    `https://api.vellosim.com/api/esim/packages/${packageCode}`,
+    {
+      method: 'GET',
+      headers: {
+        'X-API-Key': 'YOUR_API_KEY',
+        'Content-Type': 'application/json'
+      }
+    }
+  );
+
+  const packageDetails = await response.json();
+  return packageDetails;
+}
+
+// Usage
+const details = await getPackageDetails('US_5GB_30D');
+console.log(`${details.name} — $${details.price}`);
+console.log(`Data: ${(details.volume / 1073741824).toFixed(1)}GB`);
+console.log(`Duration: ${details.duration} ${details.durationUnit}s`);
+```
+
+```python Python
+import requests
+
+def get_package_details(package_code):
+    """Get details for a specific eSIM package"""
+    headers = {
+        'X-API-Key': 'YOUR_API_KEY',
+        'Content-Type': 'application/json'
+    }
+
+    response = requests.get(
+        f'https://api.vellosim.com/api/esim/packages/{package_code}',
+        headers=headers
+    )
+
+    return response.json()
+
+# Usage
+details = get_package_details('US_5GB_30D')
+data_gb = details['volume'] / (1024 ** 3)
+print(f"{details['name']} — ${details['price']}")
+print(f"Data: {data_gb:.1f}GB, Duration: {details['duration']} {details['durationUnit']}s")
+```
+
+```php PHP
+<?php
+function getPackageDetails($packageCode) {
+    $apiKey = 'YOUR_API_KEY';
+
+    $ch = curl_init("https://api.vellosim.com/api/esim/packages/{$packageCode}");
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_HTTPHEADER, [
+        'X-API-Key: ' . $apiKey,
+        'Content-Type: application/json'
+    ]);
+
+    $response = curl_exec($ch);
+    $data = json_decode($response, true);
+    curl_close($ch);
+
+    return $data;
+}
+
+// Usage
+$details = getPackageDetails('US_5GB_30D');
+$dataGB = $details['volume'] / (1024 ** 3);
+echo "{$details['name']} — \${$details['price']}\n";
+echo "Data: {$dataGB}GB, Duration: {$details['duration']} {$details['durationUnit']}s\n";
+?>
+```
+
+</CodeGroup>
+
+## Example Response
+
+<ResponseExample>
+
+```json 200 - Success
+{
+  "packageCode": "US_5GB_30D",
+  "name": "USA 5GB - 30 Days",
+  "price": 5.75,
+  "currencyCode": "USD",
+  "volume": 5368709120,
+  "duration": 30,
+  "durationUnit": "DAY",
+  "speed": "4G/5G",
+  "description": "5GB data plan for the United States, valid for 30 days",
+  "unusedValidTime": 30,
+  "location": "United States",
+  "locationCode": "US",
+  "locationNetworkList": [
+    {
+      "locationName": "United States",
+      "locationLogo": "https://example.com/flags/us.png",
+      "locationCode": "US",
+      "operatorList": [
+        {
+          "operatorName": "AT&T",
+          "networkType": "4G/LTE"
+        },
+        {
+          "operatorName": "T-Mobile",
+          "networkType": "4G/5G"
+        }
+      ]
+    }
+  ]
+}
+```
+
+```json 404 - Not Found
+{
+  "success": false,
+  "message": "Package not found",
+  "statusCode": 404
+}
+```
+
+</ResponseExample>
+
+## Converting Data Volume
+
+Package `volume` is returned in **bytes**. Use these conversions:
+
+```javascript
+function formatDataVolume(bytes) {
+  const gb = bytes / (1024 * 1024 * 1024);
+  if (gb >= 1) return `${gb.toFixed(gb % 1 === 0 ? 0 : 1)}GB`;
+  const mb = bytes / (1024 * 1024);
+  return `${mb.toFixed(mb % 1 === 0 ? 0 : 1)}MB`;
+}
+
+// formatDataVolume(5368709120) → "5GB"
+// formatDataVolume(536870912)  → "512MB"
+```
+
+## Use Cases
+
+<AccordionGroup>
+  <Accordion title="Package Detail Page">
+    Show full details before a user commits to purchase:
+
+    ```javascript
+    const pkg = await getPackageDetails('US_5GB_30D');
+
+    // Display to user
+    document.querySelector('.pkg-name').textContent = pkg.name;
+    document.querySelector('.pkg-price').textContent = `$${pkg.price}`;
+    document.querySelector('.pkg-data').textContent = formatDataVolume(pkg.volume);
+    document.querySelector('.pkg-duration').textContent = `${pkg.duration} days`;
+    document.querySelector('.pkg-speed').textContent = pkg.speed;
+    ```
+  </Accordion>
+
+  <Accordion title="Pre-Purchase Confirmation">
+    Verify package details and show NGN equivalent before buying:
+
+    ```javascript
+    const [pkg, rate] = await Promise.all([
+      getPackageDetails(packageCode),
+      getExchangeRate()
+    ]);
+
+    const ngnPrice = Math.round(pkg.price * rate.rate * 100) / 100;
+    console.log(`${pkg.name}: $${pkg.price} (≈ ₦${ngnPrice.toLocaleString()})`);
+    ```
+  </Accordion>
+
+  <Accordion title="Top-Up Package Lookup">
+    Look up a top-up package by prefixing with `TOPUP_`:
+
+    ```javascript
+    const topup = await getPackageDetails('TOPUP_US_5GB_30D');
+    console.log(`Top-up: ${topup.name} — $${topup.price}`);
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Get All Packages" icon="list" href="/api-reference/esim/packages">
+    Browse all packages for a region
+  </Card>
+  <Card title="Purchase eSIM" icon="shopping-cart" href="/api-reference/purchase/buy">
+    Buy this package
+  </Card>
+  <Card title="Exchange Rate" icon="dollar-sign" href="/api-reference/settings/exchange-rate">
+    Get USD → NGN rate for price conversion
+  </Card>
+  <Card title="Get Regions" icon="globe" href="/api-reference/esim/regions">
+    Browse available regions
+  </Card>
+</CardGroup>
