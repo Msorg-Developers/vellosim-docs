@@ -25,6 +25,7 @@
             "pages": [
               "guides/authentication",
               "guides/check-balance",
+              "guides/exchange-rate",
               "guides/get-regions",
               "guides/get-packages",
               "guides/purchase-esim",
@@ -55,6 +56,12 @@
             "group": "Wallet",
             "pages": [
               "api-reference/wallet/balance"
+            ]
+          },
+          {
+            "group": "Settings",
+            "pages": [
+              "api-reference/settings/exchange-rate"
             ]
           },
           {

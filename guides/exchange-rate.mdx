@@ -1,0 +1,139 @@
+---
+title: "Get Exchange Rate"
+description: "Fetch the current USD to NGN exchange rate for price conversion"
+---
+
+## Overview
+
+Vellosim eSIM packages are priced in **USD**. If your users pay in **NGN (Nigerian Naira)**, use this endpoint to fetch the current exchange rate so you can display the correct Naira amount before purchase.
+
+This is a **public endpoint** — no authentication is required.
+
+## Quick Start
+
+<CodeGroup>
+
+```javascript JavaScript
+async function getExchangeRate() {
+  const response = await fetch('https://api.vellosim.com/api/settings/exchange-rate', {
+    method: 'GET',
+    headers: {
+      'Content-Type': 'application/json'
+    }
+  });
+
+  const data = await response.json();
+  return data.data;
+}
+
+// Usage
+const rateInfo = await getExchangeRate();
+console.log(`1 ${rateInfo.baseCurrency} = ${rateInfo.rate} ${rateInfo.currency}`);
+
+// Convert a USD package price to NGN
+const packagePriceUSD = 5.00;
+const priceInNGN = packagePriceUSD * rateInfo.rate;
+console.log(`Package price: $${packagePriceUSD} = ₦${priceInNGN.toLocaleString()}`);
+```
+
+```python Python
+import requests
+
+def get_exchange_rate():
+    """Get current USD to NGN exchange rate"""
+    response = requests.get(
+        'https://api.vellosim.com/api/settings/exchange-rate',
+        headers={'Content-Type': 'application/json'}
+    )
+
+    data = response.json()
+    return data['data']
+
+# Usage
+rate_info = get_exchange_rate()
+print(f"1 {rate_info['baseCurrency']} = {rate_info['rate']} {rate_info['currency']}")
+
+# Convert a USD package price to NGN
+package_price_usd = 5.00
+price_in_ngn = package_price_usd * rate_info['rate']
+print(f"Package price: ${package_price_usd} = ₦{price_in_ngn:,.2f}")
+```
+
+```php PHP
+<?php
+function getExchangeRate() {
+    $ch = curl_init('https://api.vellosim.com/api/settings/exchange-rate');
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_HTTPHEADER, [
+        'Content-Type: application/json'
+    ]);
+
+    $response = curl_exec($ch);
+    $data = json_decode($response, true);
+    curl_close($ch);
+
+    return $data['data'];
+}
+
+// Usage
+$rateInfo = getExchangeRate();
+echo "1 {$rateInfo['baseCurrency']} = {$rateInfo['rate']} {$rateInfo['currency']}\n";
+
+// Convert a USD package price to NGN
+$packagePriceUSD = 5.00;
+$priceInNGN = $packagePriceUSD * $rateInfo['rate'];
+echo "Package price: \${$packagePriceUSD} = ₦" . number_format($priceInNGN, 2) . "\n";
+?>
+```
+
+</CodeGroup>
+
+## Response
+
+```json
+{
+  "success": true,
+  "message": "Exchange rate retrieved successfully",
+  "data": {
+    "rate": 1600,
+    "baseCurrency": "USD",
+    "currency": "NGN"
+  }
+}
+```
+
+### Response Fields
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `rate` | number | Current exchange rate (1 USD = X NGN) |
+| `baseCurrency` | string | Base currency — always `USD` |
+| `currency` | string | Target currency — always `NGN` |
+
+## Usage Tips
+
+<AccordionGroup>
+  <Accordion title="Cache the rate">
+    The exchange rate doesn't change frequently. Cache it for **10–15 minutes** to reduce API calls.
+  </Accordion>
+
+  <Accordion title="Display both currencies">
+    Show your users both the USD price from the package and the calculated NGN amount for transparency:
+
+    ```
+    Data Plan: 5GB — $4.50 (≈ ₦7,200)
+    ```
+  </Accordion>
+
+  <Accordion title="Round NGN amounts">
+    Round the converted NGN amount to 2 decimal places for clean display:
+
+    ```javascript
+    const ngnPrice = Math.round(usdPrice * rate * 100) / 100;
+    ```
+  </Accordion>
+</AccordionGroup>
+
+<Note>
+  The actual charge at purchase time uses the **server-side rate**, not the rate you fetched. Small differences may occur if the rate updates between display and purchase.
+</Note>

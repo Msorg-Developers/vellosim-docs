@@ -1,0 +1,93 @@
+---
+title: "Get Exchange Rate"
+api: "GET /api/settings/exchange-rate"
+description: "Retrieve the current USD to NGN exchange rate"
+---
+
+## Endpoint
+
+```
+GET /api/settings/exchange-rate
+```
+
+## Description
+
+Returns the current USD to NGN exchange rate used by Vellosim. Use this to convert USD package prices to NGN for display purposes.
+
+This is a **public endpoint** — no authentication required.
+
+## Request
+
+### Headers
+
+| Header | Value | Required |
+|--------|-------|----------|
+| Content-Type | application/json | No |
+
+### Parameters
+
+This endpoint does not require any parameters.
+
+## Response
+
+### Success Response (200 OK)
+
+```json
+{
+  "success": true,
+  "message": "Exchange rate retrieved successfully",
+  "data": {
+    "rate": 1600,
+    "baseCurrency": "USD",
+    "currency": "NGN"
+  }
+}
+```
+
+### Response Fields
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `rate` | number | Current exchange rate. 1 USD = `rate` NGN |
+| `baseCurrency` | string | Base currency — always `USD` |
+| `currency` | string | Target currency — always `NGN` |
+
+## Code Examples
+
+<CodeGroup>
+
+```javascript JavaScript
+const response = await fetch('https://api.vellosim.com/api/settings/exchange-rate');
+const { data } = await response.json();
+
+console.log(`Exchange rate: 1 USD = ${data.rate} NGN`);
+```
+
+```python Python
+import requests
+
+response = requests.get('https://api.vellosim.com/api/settings/exchange-rate')
+data = response.json()['data']
+
+print(f"Exchange rate: 1 USD = {data['rate']} NGN")
+```
+
+```bash cURL
+curl -X GET https://api.vellosim.com/api/settings/exchange-rate
+```
+
+</CodeGroup>
+
+## Converting Prices
+
+Use the rate to convert USD package prices to NGN:
+
+```javascript
+const packagePriceUSD = 4.50;
+const ngnPrice = Math.round(packagePriceUSD * data.rate * 100) / 100;
+// e.g. 4.50 * 1600 = ₦7,200.00
+```
+
+<Note>
+  This endpoint is public and does not require an API key. The rate is updated periodically and may change between when you fetch it and when a purchase is made.
+</Note>
