@@ -14,6 +14,8 @@ GET /api/esim/packages/{packageCode}
 
 Returns detailed information for a single eSIM package, including pricing, data volume, duration, network coverage, and supported operators. Use this to display a package detail page or to confirm package info before purchase.
 
+Supports both **BASE** (new eSIM) and **TOPUP** (data refill) packages. To fetch a top-up package, either pass `?type=TOPUP` or prefix the package code with `TOPUP_` (e.g., `TOPUP_CKH384`).
+
 This is a **public endpoint** — authentication is optional. If an API key is provided, pricing will be calculated based on your account type (User or Merchant).
 
 ## Authentication
@@ -34,6 +36,14 @@ This is a **public endpoint** — authentication is optional. If an API key is p
 </ParamField>
 
 ## Query Parameters
+
+<ParamField query="type" type="string" optional>
+  Package type:
+  - `BASE` - New eSIM packages (default)
+  - `TOPUP` - Top-up packages for existing eSIMs
+  
+  If not provided, defaults to `BASE`. You can also prefix the `packageCode` with `TOPUP_` instead of using this parameter.
+</ParamField>
 
 <ParamField query="currency" type="string" optional>
   Override currency for pricing (e.g., `NGN`, `USD`, `EUR`).
@@ -111,66 +121,91 @@ This is a **public endpoint** — authentication is optional. If an API key is p
 
 <CodeGroup>
 
-```bash cURL
+```bash cURL (BASE package)
 curl -X GET 'https://api.vellosim.com/api/esim/packages/US_5GB_30D' \
   -H "X-API-Key: YOUR_API_KEY" \
   -H "Content-Type: application/json"
 ```
 
-```javascript JavaScript
-async function getPackageDetails(packageCode) {
-  const response = await fetch(
-    `https://api.vellosim.com/api/esim/packages/${packageCode}`,
-    {
-      method: 'GET',
-      headers: {
-        'X-API-Key': 'YOUR_API_KEY',
-        'Content-Type': 'application/json'
-      }
-    }
-  );
+```bash cURL (TOPUP package)
+# Option 1: Use type query parameter
+curl -X GET 'https://api.vellosim.com/api/esim/packages/CKH384?type=TOPUP' \
+  -H "X-API-Key: YOUR_API_KEY" \
+  -H "Content-Type: application/json"
 
-  const packageDetails = await response.json();
-  return packageDetails;
+# Option 2: Use TOPUP_ prefix
+curl -X GET 'https://api.vellosim.com/api/esim/packages/TOPUP_CKH384' \
+  -H "X-API-Key: YOUR_API_KEY" \
+  -H "Content-Type: application/json"
+```
+
+```javascript JavaScript
+async function getPackageDetails(packageCode, type = 'BASE') {
+  const params = new URLSearchParams();
+  if (type !== 'BASE') params.set('type', type);
+
+  const url = `https://api.vellosim.com/api/esim/packages/${packageCode}${params.toString() ? '?' + params : ''}`;
+
+  const response = await fetch(url, {
+    method: 'GET',
+    headers: {
+      'X-API-Key': 'YOUR_API_KEY',
+      'Content-Type': 'application/json'
+    }
+  });
+
+  return await response.json();
 }
 
-// Usage
+// Get a BASE package
 const details = await getPackageDetails('US_5GB_30D');
 console.log(`${details.name} — $${details.price}`);
-console.log(`Data: ${(details.volume / 1073741824).toFixed(1)}GB`);
-console.log(`Duration: ${details.duration} ${details.durationUnit}s`);
+
+// Get a TOPUP package
+const topup = await getPackageDetails('CKH384', 'TOPUP');
+console.log(`Top-up: ${topup.name} — $${topup.price}`);
 ```
 
 ```python Python
 import requests
 
-def get_package_details(package_code):
+def get_package_details(package_code, pkg_type='BASE'):
     """Get details for a specific eSIM package"""
     headers = {
         'X-API-Key': 'YOUR_API_KEY',
         'Content-Type': 'application/json'
     }
 
+    params = {}
+    if pkg_type != 'BASE':
+        params['type'] = pkg_type
+
     response = requests.get(
         f'https://api.vellosim.com/api/esim/packages/{package_code}',
-        headers=headers
+        headers=headers,
+        params=params
     )
 
     return response.json()
 
-# Usage
+# Get a BASE package
 details = get_package_details('US_5GB_30D')
 data_gb = details['volume'] / (1024 ** 3)
 print(f"{details['name']} — ${details['price']}")
-print(f"Data: {data_gb:.1f}GB, Duration: {details['duration']} {details['durationUnit']}s")
+
+# Get a TOPUP package
+topup = get_package_details('CKH384', 'TOPUP')
+print(f"Top-up: {topup['name']} — ${topup['price']}")
 ```
 
 ```php PHP
 <?php
-function getPackageDetails($packageCode) {
+function getPackageDetails($packageCode, $type = 'BASE') {
     $apiKey = 'YOUR_API_KEY';
 
-    $ch = curl_init("https://api.vellosim.com/api/esim/packages/{$packageCode}");
+    $query = $type !== 'BASE' ? '?' . http_build_query(['type' => $type]) : '';
+
+    $ch = curl_init("https://api.vellosim.com/api/esim/packages/{$packageCode}{$query}");
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
     curl_setopt($ch, CURLOPT_HTTPHEADER, [
         'X-API-Key: ' . $apiKey,
@@ -184,11 +219,13 @@ function getPackageDetails($packageCode) {
     return $data;
 }
 
-// Usage
+// Get a BASE package
 $details = getPackageDetails('US_5GB_30D');
-$dataGB = $details['volume'] / (1024 ** 3);
 echo "{$details['name']} — \${$details['price']}\n";
-echo "Data: {$dataGB}GB, Duration: {$details['duration']} {$details['durationUnit']}s\n";
+
+// Get a TOPUP package
+$topup = getPackageDetails('CKH384', 'TOPUP');
+echo "Top-up: {$topup['name']} — \${$topup['price']}\n";
 ?>
 ```
 
@@ -291,11 +328,16 @@ function formatDataVolume(bytes) {
   </Accordion>
 
   <Accordion title="Top-Up Package Lookup">
-    Look up a top-up package by prefixing with `TOPUP_`:
+    Look up a top-up package using the `type` query parameter or `TOPUP_` prefix:
 
     ```javascript
-    const topup = await getPackageDetails('TOPUP_US_5GB_30D');
+    // Option 1: Use type query parameter (recommended)
+    const topup = await getPackageDetails('CKH384', 'TOPUP');
     console.log(`Top-up: ${topup.name} — $${topup.price}`);
+
+    // Option 2: Use TOPUP_ prefix
+    const topup2 = await getPackageDetails('TOPUP_CKH384');
+    console.log(`Top-up: ${topup2.name} — $${topup2.price}`);
     ```
   </Accordion>
 </AccordionGroup>
@@ -306,13 +348,13 @@ function formatDataVolume(bytes) {
   <Card title="Get All Packages" icon="list" href="/api-reference/esim/packages">
     Browse all packages for a region
   </Card>
+  <Card title="Top-Up Packages" icon="arrow-rotate-right" href="/api-reference/esim/topup-packages">
+    Get available top-up packages for an existing eSIM
+  </Card>
   <Card title="Purchase eSIM" icon="shopping-cart" href="/api-reference/purchase/buy">
     Buy this package
   </Card>
   <Card title="Exchange Rate" icon="dollar-sign" href="/api-reference/settings/exchange-rate">
     Get USD → NGN rate for price conversion
-  </Card>
-  <Card title="Get Regions" icon="globe" href="/api-reference/esim/regions">
-    Browse available regions
   </Card>
 </CardGroup>
